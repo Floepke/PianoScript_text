@@ -13,6 +13,7 @@ Advantages:
 * very visual design
 * There is only one way to write a note so that makes it possible to convert a midi correctly.
 * there is no key signature because the staff is twelve tone
+
 Disasvantages:
 * the rhythmic notation is less clear, however sometimes it can be helpfull to have a hard rhythmic phrase in distances.
 * PianoScript gives no context about scales. this however can also be a advantage...
