@@ -1,0 +1,4 @@
+# PianoScript
+PianoScript is a music notation which is displaying a midifile in such way that it is readable as music notation. You can print the midifile to learn to play it on the piano. PianoScript is based on the klavarskribo music notation but has multiple differences. I am seeing that many people are using midifiles to learn to play a piece on the piano. For example think about synthesia(the pianoroll on youtube). And I am one of these people but I have a problem to solve: 
+### Midifiles are not human readable!
+I mean that a midifile in the pianorolleditor is not easy to read, therefore they are using colors. But for this music notation the rules are to use only the color black. With black you can also use grey which I am doing. Look to the 'design' file which is displaying a 'hand drawn' example.
