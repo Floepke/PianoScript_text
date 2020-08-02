@@ -10,7 +10,7 @@ PianoScript is based on klavarskribo(google it if you wanna know how it looks). 
 ### advantages and disadvantages
 Advantages:
 * You don't have to learn about sharps and flats
-* very visual design
+* Visual design
 * There is only one way to write a note so that makes it possible to convert a midi correctly.
 * there is no key signature because the staff is twelve tone
 
