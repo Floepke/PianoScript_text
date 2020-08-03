@@ -1,6 +1,8 @@
 import sys, os, platform, itertools
 from mido import MidiFile
 from decimal import Decimal
+from tkinter import END, filedialog, messagebox, scrolledtext, Scrollbar, simpledialog
+from itertools import tee, islice, chain
 
 try:
     import Tkinter as tk
@@ -16,8 +18,9 @@ except ImportError:
 
     py3 = True
 
-from tkinter import END, filedialog, messagebox, scrolledtext, Scrollbar, simpledialog
 import tkinter.font as font
+
+
 
 #########################################################
 # Build Graphical Userinterface                         #
@@ -58,7 +61,7 @@ def buildGUI():
     root.CanvasPage.configure(takefocus="0", bg=bgr)
 
 
-    vbar=Scrollbar(root.CanvasPage,orient='horizontal')
+    vbar=Scrollbar(root.CanvasPage,orient='horizontal', width=15)
     vbar.pack(side='bottom',fill='x')
     vbar.config(command=root.CanvasPage.xview)
     root.CanvasPage.configure(xscrollcommand=vbar.set)
@@ -169,7 +172,7 @@ def exitRoot():# Working
     root.destroy()
 
 #########################################################
-# Simple tools(functions)                               #
+# tools(functions)                                      #
 #########################################################
 def difference(x, y):
     if x>=y:
@@ -190,23 +193,24 @@ def quartersFitInMeasure(numerator, denominator):
         w = (n*d)/(d*2)
     return w
 
+corr1 = 1
 
 def black_key(x, y):  # center coordinates, radius
     x0 = x - 5
     y0 = y - 5
-    x1 = x + 4
+    x1 = x + 5
     y1 = y + 5
     root.CanvasPage.create_oval(x0, y0, x1, y1, outline='black', fill='black')
-    root.CanvasPage.create_line(x0,y, x0,y-40, width=2)
+    root.CanvasPage.create_line(x0+corr1,y, x0+corr1,y-40, width=2)
 
 def black_key_left(x, y):  # center coordinates, radius
     x0 = x - 5
     y0 = y - 5
-    x1 = x + 4
+    x1 = x + 5
     y1 = y + 5
     root.CanvasPage.create_oval(x0, y0, x1, y1, outline='black', fill='black')
-    root.CanvasPage.create_oval(x0+4, y0+4, x1-4, y1-4, outline='white', fill='')
-    root.CanvasPage.create_line(x0,y, x0,y+40, width=2)
+    root.CanvasPage.create_oval(x0+4, y0+4, x1-4, y1-4, outline='white', fill='white')
+    root.CanvasPage.create_line(x0+corr1,y, x0+corr1,y+40, width=2)
 
 def white_key(x, y):  # center coordinates, radius
     x0 = x - 5
@@ -214,7 +218,7 @@ def white_key(x, y):  # center coordinates, radius
     x1 = x + 5
     y1 = y + 5
     root.CanvasPage.create_oval(x0, y0, x1, y1, outline="black", width=2, fill='white')
-    root.CanvasPage.create_line(x0,y, x0,y-40, width=2)
+    root.CanvasPage.create_line(x0+corr1,y, x0+corr1,y-40, width=2)
 
 def white_key_left(x, y):  # center coordinates, radius
     x0 = x - 5
@@ -223,11 +227,18 @@ def white_key_left(x, y):  # center coordinates, radius
     y1 = y + 5
     root.CanvasPage.create_oval(x0, y0, x1, y1, outline="black", width=2, fill='white')
     root.CanvasPage.create_oval(x0+4, y0+4, x1-4, y1-4, outline="black")
-    root.CanvasPage.create_line(x0,y, x0,y+40, width=2)
+    root.CanvasPage.create_line(x0+corr1,y, x0+corr1,y+40, width=2)
 
 def noteStop(x, y):
     root.CanvasPage.create_line(x-5,y-5, x, y, x,y, x-5,y+5, width=2) # orginal klavarscribo design
     #root.CanvasPage.create_line(x,y, x,y+5, x,y+5, x,y-5, x,y-5, x,y, x,y, x-5,y+5, x-5,y+5, x,y, x,y, x-5,y-5, fill='black', width=2) # maybe the pianoscript design
+
+
+def previous_and_next(some_iterable):
+        prevs, items, nexts = tee(some_iterable, 3)
+        prevs = chain([None], prevs)
+        nexts = chain(islice(nexts, 1, None), [None])
+        return zip(prevs, items, nexts)
 
 #########################################################
 # Main program function                                 #
@@ -247,9 +258,9 @@ measuresperline = 4
 measurewidth = printareawidth / measuresperline
 ii = 100
 
-# scale settings
+# default scale settings
 yscale = 5
-xscale = [15]
+xscale = [5]
 
 def renderMusic(tralala):
     root.CanvasPage.delete('all')
@@ -262,13 +273,12 @@ def renderMusic(tralala):
 
     def translateMIDI():
         #### put all needed messages in a list ####
-        ### labelstorage 1 ###
+        ### storage 1 ###
         mem1=0
         midimsgs = []
         miditempo = []
         ticksperbeat = mid.ticks_per_beat
         msperbeat = 1
-        timechange = []
 
 
         
@@ -287,7 +297,7 @@ def renderMusic(tralala):
             if i['type'] == 'note_on' or i['type'] == 'note_off':
                 midimsg.append([i['type'], i['time'], i['note'], i['velocity'], i['channel']])
             if i['type'] == 'time_signature':
-                timechange.append([i['type'], i['time'], i['numerator'], i['denominator'], i['clocks_per_click'], i['notated_32nd_notes_per_beat']])
+                midimsg.append([i['type'], i['time'], i['numerator'], i['denominator'], i['clocks_per_click'], i['notated_32nd_notes_per_beat']])
             if i['type'] == 'set_tempo':
                 midimsg.append( [i['type'], i['time'], (i['tempo'])] )
             if i['type'] == 'track_name':
@@ -298,8 +308,8 @@ def renderMusic(tralala):
         
 
         
-        #### Engraving Notes, Stems, Stopsign if needed ####
-        ### labelstorage 2 ###
+        #### Converting time to ticks ####
+        ### storage 2 ###
         mem2 = [0]
         blck = [2, 5, 7, 10, 12, 14, 17, 19, 22, 24, 26, 29, 31, 34, 36, 38, 41, 43, 46, 48, 50, 53, 55, 58, 60, 62, 65, 67, 70, 72, 74, 77, 79, 82, 84, 86]
         wht = [1, 3, 4, 6, 8, 9, 11, 13, 15, 16, 18, 20, 21, 23, 25, 27, 28, 30, 32, 33, 35, 37, 39, 40, 42, 44, 45, 47, 49, 51, 52, 54, 56, 57, 59, 61, 63, 64, 66, 68, 69, 71, 73, 75, 76, 78, 80, 81, 83, 85, 87, 88]
@@ -311,45 +321,43 @@ def renderMusic(tralala):
             if i[0] == 'set_tempo':
                 msperbeat = i[2]
             i[1] = round((ticksperbeat * (1 / msperbeat) * 1000000 * i[1]), 0)
-        
+
         ## define last noteoff time in ticks which is the length of the entire track. ##
         for i in midimsg:
-            
             if i[0] == 'note_off':
                 mem2.append(i[1])
                 entirelength = mem2[-1]
         
-        ## note on ##
-        for i in midimsg:
-            if i[0] == 'note_on' and i[4] == 0:
-                if i[2]-20 in blck:
-                    black_key_left(i[1]*(xscale[0]/50)+2.5, -abs(i[2]*yscale)+yscale*100+50)
-                if i[2]-20 in wht:
-                    white_key_left(i[1]*(xscale[0]/50)+2.5, -abs(i[2]*yscale)+yscale*100+50)
-            if i[0] == 'note_on' and i[4] > 0:
-                if i[2]-20 in blck:
-                    black_key(i[1]*(xscale[0]/50)+2.5, -abs(i[2]*yscale)+yscale*100+50)
-                if i[2]-20 in wht:
-                    white_key(i[1]*(xscale[0]/50)+2.5, -abs(i[2]*yscale)+yscale*100+50)
         
-        ## note off ##
-        for i in midimsg:
-            if i[0] == 'note_off':
-                mem3 = []
-                for x in midimsg:
-                    if x[0] == 'note_on' and x[4] == i[4]:
-                        mem3.append(x[1])
-                if i[1] not in mem3:
-                    # if difference(i[1], x[1]) <= 10:
-                    noteStop(i[1]*(xscale[0]/50), -abs(i[2]*yscale)+yscale*100+49.495)
-
-
-        
-
-        #### Engraving the staff ####
-        ### labelstorage 3 ###
+        #### Engraving the barlines ####
+        ### storage 3 ###
+        timechange = []
+        tctime = []
         numerator = 4
         denominator = 4
+        num = 0
+        den = 0
+        barx = 0
+        recx = 0
+        
+
+        ## add current timesig ##
+        measurecount = entirelength / (quartersFitInMeasure(numerator, denominator) * mid.ticks_per_beat)
+        sizeofmeasureinticks = quartersFitInMeasure(numerator, denominator) * mid.ticks_per_beat
+        recwidth = sizeofmeasureinticks / 4
+
+        for _ in range(int(measurecount)):
+            root.CanvasPage.create_line(barx*(xscale[0]/50)-1.5, 0, barx*(xscale[0]/50)-1.5, 500, width=2)
+            root.CanvasPage.create_text(barx*(xscale[0]/50)+15, 100, text=_+1)
+            barx += sizeofmeasureinticks
+            # create count rectangles
+            tanglex = sizeofmeasureinticks/4
+            # root.CanvasPage.create_rectangle(tanglex, 0, tanglex+100, 500, outline='', fill='#e3e3e3')
+            recx += recwidth/4
+
+
+        #### Engraving the staff ####
+        ### storage 4 ###
         allnotes = []
         entirelength = 0
         measurecount = 0
@@ -424,25 +432,65 @@ def renderMusic(tralala):
                 root.CanvasPage.create_line(0, 10, entirelength*(xscale[0]/50), 10, width=2.4)
 
 
-        ## define and draw the barlines ##
-        if len(timechange) > 1:
-            numberoftimechange = len(timechange)
-            measurecount = entirelength / (quartersFitInMeasure(numerator, denominator) * mid.ticks_per_beat)
-            print(timechange)
-            for i in timechange:
-                numerator = i[2]
-                denominator = i[3]
-                
-                print(measurecount)
-        else:# If midi is in one time sig
-            l = (0.5 * mid.ticks_per_beat)/(xscale[0]/50)
-            print(l)
 
-            for _ in range(100):
-                root.CanvasPage.create_line(sum(mem4), 0, sum(mem4), 500, width=2)
-                k = mem4
-                mem4.append(l)
-        print(mem4)
+        ## note on ##
+        for i in midimsg:
+            if i[0] == 'note_on' and i[4] == 0:
+                if i[2]-20 in blck:
+                    black_key_left(i[1]*(xscale[0]/50)+2.5, -abs(i[2]*yscale)+yscale*100+50)
+                if i[2]-20 in wht:
+                    white_key_left(i[1]*(xscale[0]/50)+2.5, -abs(i[2]*yscale)+yscale*100+50)
+            if i[0] == 'note_on' and i[4] > 0:
+                if i[2]-20 in blck:
+                    black_key(i[1]*(xscale[0]/50)+2.5, -abs(i[2]*yscale)+yscale*100+50)
+                if i[2]-20 in wht:
+                    white_key(i[1]*(xscale[0]/50)+2.5, -abs(i[2]*yscale)+yscale*100+50)
+        
+        ## note off ##
+        for i in midimsg:
+            if i[0] == 'note_off':
+                mem3 = []
+                for x in midimsg:
+                    if x[0] == 'note_on' and x[4] == i[4]:
+                        mem3.append(x[1])
+                if i[1] not in mem3:
+                    # if difference(i[1], x[1]) <= 10:
+                    noteStop(i[1]*(xscale[0]/50), -abs(i[2]*yscale)+yscale*100+49.495)
+
+
+        
+
+        
+
+
+        
+
+            
+
+
+
+
+
+
+
+
+
+        # for i in midimsg:
+        #     if i[0] == 'time_signature':
+        #         timechange.append([i[0], i[1], i[2], i[3], i[4], i[5]])
+
+        # for i in timechange:
+        #     tctime.append(i[1])
+
+        #     for prvs, item, nxt in previous_and_next(tctime):
+        #         # how many miditicks between first and last (timechange or last midioff-tick)?
+        #         if nxt == None:
+        #             break
+
+        #         measurecount = entirelength / (quartersFitInMeasure(numerator, denominator) * mid.ticks_per_beat)
+        #         while item < nxt:
+        #             if 
+
 
 
                 
