@@ -3,6 +3,7 @@ from mido import MidiFile
 from decimal import Decimal
 from tkinter import END, filedialog, messagebox, scrolledtext, Scrollbar, simpledialog
 from itertools import tee, islice, chain
+from functions import *
 
 try:
     import Tkinter as tk
@@ -171,9 +172,7 @@ def openFile():
 def exitRoot():# Working
     root.destroy()
 
-#########################################################
-# tools(functions)                                      #
-#########################################################
+
 def difference(x, y):
     if x>=y:
         return x-y
@@ -192,46 +191,6 @@ def quartersFitInMeasure(numerator, denominator):
     if d > 4:
         w = (n*d)/(d*2)
     return w
-
-corr1 = 1
-
-def black_key(x, y):  # center coordinates, radius
-    x0 = x - 5
-    y0 = y - 5
-    x1 = x + 5
-    y1 = y + 5
-    root.CanvasPage.create_oval(x0, y0, x1, y1, outline='black', fill='black')
-    root.CanvasPage.create_line(x0+corr1,y, x0+corr1,y-40, width=2)
-
-def black_key_left(x, y):  # center coordinates, radius
-    x0 = x - 5
-    y0 = y - 5
-    x1 = x + 5
-    y1 = y + 5
-    root.CanvasPage.create_oval(x0, y0, x1, y1, outline='black', fill='black')
-    root.CanvasPage.create_oval(x0+4, y0+4, x1-4, y1-4, outline='white', fill='white')
-    root.CanvasPage.create_line(x0+corr1,y, x0+corr1,y+40, width=2)
-
-def white_key(x, y):  # center coordinates, radius
-    x0 = x - 5
-    y0 = y - 5
-    x1 = x + 5
-    y1 = y + 5
-    root.CanvasPage.create_oval(x0, y0, x1, y1, outline="black", width=2, fill='white')
-    root.CanvasPage.create_line(x0+corr1,y, x0+corr1,y-40, width=2)
-
-def white_key_left(x, y):  # center coordinates, radius
-    x0 = x - 5
-    y0 = y - 5
-    x1 = x + 5
-    y1 = y + 5
-    root.CanvasPage.create_oval(x0, y0, x1, y1, outline="black", width=2, fill='white')
-    root.CanvasPage.create_oval(x0+4, y0+4, x1-4, y1-4, outline="black")
-    root.CanvasPage.create_line(x0+corr1,y, x0+corr1,y+40, width=2)
-
-def noteStop(x, y):
-    root.CanvasPage.create_line(x-5,y-5, x, y, x,y, x-5,y+5, width=2) # orginal klavarscribo design
-    #root.CanvasPage.create_line(x,y, x,y+5, x,y+5, x,y-5, x,y-5, x,y, x,y, x-5,y+5, x-5,y+5, x,y, x,y, x-5,y-5, fill='black', width=2) # maybe the pianoscript design
 
 
 def previous_and_next(some_iterable):
@@ -271,7 +230,7 @@ def renderMusic(tralala):
     def setChannel():# this function changes the channel of MIDItracks to later on make the seperation for left and right hand.
         print('setChannel')
 
-    def translateMIDI():
+    def translateMIDItoList():
         #### put all needed messages in a list ####
         ### storage 1 ###
         mem1=0
@@ -321,6 +280,8 @@ def renderMusic(tralala):
             if i[0] == 'set_tempo':
                 msperbeat = i[2]
             i[1] = round((ticksperbeat * (1 / msperbeat) * 1000000 * i[1]), 0)
+        for i in midimsg: print(i)
+
 
         ## define last noteoff time in ticks which is the length of the entire track. ##
         for i in midimsg:
@@ -437,14 +398,14 @@ def renderMusic(tralala):
         for i in midimsg:
             if i[0] == 'note_on' and i[4] == 0:
                 if i[2]-20 in blck:
-                    black_key_left(i[1]*(xscale[0]/50)+2.5, -abs(i[2]*yscale)+yscale*100+50)
+                    black_key_left(i[1]*(xscale[0]/50)+2.5, -abs(i[2]*yscale)+yscale*100+50, root.CanvasPage)
                 if i[2]-20 in wht:
-                    white_key_left(i[1]*(xscale[0]/50)+2.5, -abs(i[2]*yscale)+yscale*100+50)
+                    white_key_left(i[1]*(xscale[0]/50)+2.5, -abs(i[2]*yscale)+yscale*100+50, root.CanvasPage)
             if i[0] == 'note_on' and i[4] > 0:
                 if i[2]-20 in blck:
-                    black_key(i[1]*(xscale[0]/50)+2.5, -abs(i[2]*yscale)+yscale*100+50)
+                    black_key(i[1]*(xscale[0]/50)+2.5, -abs(i[2]*yscale)+yscale*100+50, root.CanvasPage)
                 if i[2]-20 in wht:
-                    white_key(i[1]*(xscale[0]/50)+2.5, -abs(i[2]*yscale)+yscale*100+50)
+                    white_key(i[1]*(xscale[0]/50)+2.5, -abs(i[2]*yscale)+yscale*100+50, root.CanvasPage)
         
         ## note off ##
         for i in midimsg:
@@ -454,51 +415,12 @@ def renderMusic(tralala):
                     if x[0] == 'note_on' and x[4] == i[4]:
                         mem3.append(x[1])
                 if i[1] not in mem3:
-                    # if difference(i[1], x[1]) <= 10:
-                    noteStop(i[1]*(xscale[0]/50), -abs(i[2]*yscale)+yscale*100+49.495)
-
-
-        
-
-        
-
-
-        
-
-            
-
-
-
-
-
-
-
-
-
-        # for i in midimsg:
-        #     if i[0] == 'time_signature':
-        #         timechange.append([i[0], i[1], i[2], i[3], i[4], i[5]])
-
-        # for i in timechange:
-        #     tctime.append(i[1])
-
-        #     for prvs, item, nxt in previous_and_next(tctime):
-        #         # how many miditicks between first and last (timechange or last midioff-tick)?
-        #         if nxt == None:
-        #             break
-
-        #         measurecount = entirelength / (quartersFitInMeasure(numerator, denominator) * mid.ticks_per_beat)
-        #         while item < nxt:
-        #             if 
-
-
-
-                
-
+                    if difference(i[1], x[1]) <= 10:
+                        noteStop(i[1]*(xscale[0]/50)-1, -abs(i[2]*yscale)+yscale*100+50, root.CanvasPage)
 
 
     ## function run order ##
-    translateMIDI()
+    translateMIDItoList()
     root.CanvasPage.configure(scrollregion=root.CanvasPage.bbox('all'))
     
 
