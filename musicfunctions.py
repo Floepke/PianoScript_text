@@ -15,6 +15,7 @@ def quartersFitInMeasure(numerator, denominator):
     return w
 
 
+
 def midiInterval(midix, midiy):
     intervals = ['unison', 'minor second', 'major second', 'minor third', 
     'major third', 'fourth', 'diminished fifth/augmented fourth', 'fifth',
@@ -23,8 +24,6 @@ def midiInterval(midix, midiy):
         return intervals[difference(midix, midiy)]
     except IndexError:
         return 'unknown interval'
-
-print(midiInterval(34, 40))
 
 
 ### noteheads ###
