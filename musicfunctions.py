@@ -1,13 +1,7 @@
+'''This file contains functions about music'''
+from logicfunctions import *
 
-
-## general functions ##
-def difference(x, y):
-    if x>=y:
-        return x-y
-    if y>x:
-        return y-x
-
-
+## logic ##
 def quartersFitInMeasure(numerator, denominator):
     w = 0
     n = numerator
@@ -21,20 +15,16 @@ def quartersFitInMeasure(numerator, denominator):
     return w
 
 
-def isInSource(source, search, searchoffset):
-    funcout = False
-    def isIterable(x):
-        try:
-            iter(x)
-            return True
-        except TypeError:
-            return False
+def midiInterval(midix, midiy):
+    intervals = ['unison', 'minor second', 'major second', 'minor third', 
+    'major third', 'fourth', 'diminished fifth/augmented fourth', 'fifth',
+    'minor sixth', 'major sixth', 'minor seventh', 'major seventh', 'octave']
+    try:
+        return intervals[difference(midix, midiy)]
+    except IndexError:
+        return 'unknown interval'
 
-    if isIterable(source) == True:
-        for i in source:
-            if i >= (search-searchoffset) and i <= (search+searchoffset):
-                funcout = True
-    return funcout
+print(midiInterval(34, 40))
 
 
 ### noteheads ###
