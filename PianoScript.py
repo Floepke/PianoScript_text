@@ -172,33 +172,6 @@ def openFile():
 def exitRoot():# Working
     root.destroy()
 
-
-def difference(x, y):
-    if x>=y:
-        return x-y
-    if y>x:
-        return y-x
-
-
-def quartersFitInMeasure(numerator, denominator):
-    w = 0
-    n = numerator
-    d = denominator
-    if d < 4:
-        w = (n*d)/(d/2)
-    if d == 4:
-        w = (n*d)/d
-    if d > 4:
-        w = (n*d)/(d*2)
-    return w
-
-
-def previous_and_next(some_iterable):
-        prevs, items, nexts = tee(some_iterable, 3)
-        prevs = chain([None], prevs)
-        nexts = chain(islice(nexts, 1, None), [None])
-        return zip(prevs, items, nexts)
-
 #########################################################
 # Main program function                                 #
 #########################################################

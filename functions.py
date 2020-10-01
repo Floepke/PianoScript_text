@@ -1,6 +1,41 @@
-#########################################################
-# tools(functions)                                      #
-#########################################################
+
+
+## general functions ##
+def difference(x, y):
+    if x>=y:
+        return x-y
+    if y>x:
+        return y-x
+
+
+def quartersFitInMeasure(numerator, denominator):
+    w = 0
+    n = numerator
+    d = denominator
+    if d < 4:
+        w = (n*d)/(d/2)
+    if d == 4:
+        w = (n*d)/d
+    if d > 4:
+        w = (n*d)/(d*2)
+    return w
+
+
+def isInSource(source, search, searchoffset):
+    funcout = False
+    def isIterable(x):
+        try:
+            iter(x)
+            return True
+        except TypeError:
+            return False
+
+    if isIterable(source) == True:
+        for i in source:
+            if i >= (search-searchoffset) and i <= (search+searchoffset):
+                funcout = True
+    return funcout
+
 
 ### noteheads ###
 def black_key(x, y, widget):  # center coordinates, radius
