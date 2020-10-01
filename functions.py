@@ -21,7 +21,7 @@ def quartersFitInMeasure(numerator, denominator):
     return w
 
 
-def isInSource(source, search, searchoffset):
+def numberInSource(source, search, searchoffset):
     funcout = False
     def isIterable(x):
         try:
