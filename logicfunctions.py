@@ -5,26 +5,15 @@ This file contains functions about logic.
 
 
 '''
-This function can handle a list or variable. It gives True if the search value is in the source.
-The third number(searchoffset) adds a tolerance to the search value. 
-Example: numberInSource(source, 5, 1) The function will return True if there is a number in the source
-between 4 and 6.
+This function can handle a list. It gives True if the search value is in the list.
+The third number(deflexion) adds a tolerance to the search value. 
+Example: numberInSource(source, 5, 1) The function will return True if there is a number in the 
+source between 4 and 6.
 '''
-def numberInSource(source, search, searchoffset):
+def numberInList(searchlist, search, deflexion):
     funcout = False
-    def isIterable(x):
-        try:
-            iter(x)
-            return True
-        except TypeError:
-            return False
-
-    if isIterable(source) == True:
-        for i in source:
-            if i >= (search-searchoffset) and i <= (search+searchoffset):
-                funcout = True
-    if isIterable(source) == False:
-        if source >= (search-searchoffset) and i <= (search+searchoffset):
+    for i in searchlist:
+        if i >= (search-deflexion) and i <= (search+deflexion):
             funcout = True
     return funcout
 

@@ -1,5 +1,5 @@
 '''This file contains functions about music'''
-from logicfunctions import *
+from logicfunctions import difference
 
 ## logic ##
 def quartersFitInMeasure(numerator, denominator):
@@ -7,11 +7,11 @@ def quartersFitInMeasure(numerator, denominator):
     n = numerator
     d = denominator
     if d < 4:
-        w = (n*d)/(d/2)
+        w = (n * d) / (d / 2)
     if d == 4:
-        w = (n*d)/d
+        w = (n * d) / d
     if d > 4:
-        w = (n*d)/(d*2)
+        w = (n * d) / (d * 2)
     return w
 
 
@@ -23,7 +23,7 @@ def midiInterval(midix, midiy):
     try:
         return intervals[difference(midix, midiy)]
     except IndexError:
-        return 'unknown interval'
+        return 'interval bigger than octave.'
 
 
 ### noteheads ###
@@ -66,5 +66,5 @@ def white_key_left(x, y, widget):  # center coordinates, radius
 
 
 def noteStop(x, y, widget):
-    #widget.create_line(x-5,y-5, x, y, x,y, x-5,y+5, width=2) # orginal klavarscribo design
-    widget.create_line(x,y, x,y+5, x,y+5, x,y-5, x,y-5, x,y, x,y, x-5,y+5, x-5,y+5, x,y, x,y, x-5,y-5, fill='black', width=2) # maybe the pianoscript design
+    widget.create_line(x-5,y-5, x, y, x,y, x-5,y+5, width=2) # orginal klavarscribo design
+    #widget.create_line(x,y, x,y+5, x,y+5, x,y-5, x,y-5, x,y, x,y, x-5,y+5, x-5,y+5, x,y, x,y, x-5,y-5, fill='black', width=2) # maybe the pianoscript design
