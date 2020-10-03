@@ -3,7 +3,8 @@ from mido import MidiFile
 from decimal import Decimal
 from tkinter import END, filedialog, messagebox, scrolledtext, Scrollbar, simpledialog
 from itertools import tee, islice, chain
-from functions import *
+from musicfunctions import *
+from logicfunctions import *
 
 try:
     import Tkinter as tk
@@ -295,7 +296,7 @@ def renderMusic(tralala):
         allnotes = []
         entirelength = 0
         measurecount = 0
-        mem4 = [0]
+        mem3 = []
 
 
 
@@ -383,13 +384,10 @@ def renderMusic(tralala):
         ## note off ##
         for i in midimsg:
             if i[0] == 'note_off':
-                mem3 = []
-                for x in midimsg:
-                    if x[0] == 'note_on' and x[4] == i[4]:
-                        mem3.append(x[1])
-                if i[1] not in mem3:
-                    if difference(i[1], x[1]) <= 10:
-                        noteStop(i[1]*(xscale[0]/50)-1, -abs(i[2]*yscale)+yscale*100+50, root.CanvasPage)
+                noteStop(i[1]*(xscale[0]/50)-0.1, -abs(i[2]*yscale)+yscale*100+50, root.CanvasPage)
+                
+
+            
 
 
     ## function run order ##
