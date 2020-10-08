@@ -1,4 +1,4 @@
-'''This file contains functions about music'''
+'''This file contains functions about the music'''
 from logicfunctions import difference
 
 ## logic ##
@@ -15,7 +15,6 @@ def quartersFitInMeasure(numerator, denominator):
     return w
 
 
-
 def midiInterval(midix, midiy):
     intervals = ['unison', 'minor second', 'major second', 'minor third', 
     'major third', 'fourth', 'diminished fifth/augmented fourth', 'fifth',
@@ -27,7 +26,7 @@ def midiInterval(midix, midiy):
 
 
 ### noteheads ###
-def black_key(x, y, widget):  # center coordinates, radius
+def black_key_right(x, y, widget):  # center coordinates, radius
     x0 = x - 5
     y0 = y - 5
     x1 = x + 5
@@ -46,7 +45,7 @@ def black_key_left(x, y, widget):  # center coordinates, radius
     widget.create_line(x0+1,y, x0+1,y+40, width=2)
 
 
-def white_key(x, y, widget):  # center coordinates, radius
+def white_key_right(x, y, widget):  # center coordinates, radius
     x0 = x - 5
     y0 = y - 5
     x1 = x + 5
@@ -66,5 +65,9 @@ def white_key_left(x, y, widget):  # center coordinates, radius
 
 
 def noteStop(x, y, widget):
-    widget.create_line(x-5,y-5, x, y, x,y, x-5,y+5, width=2) # orginal klavarscribo design
-    #widget.create_line(x,y, x,y+5, x,y+5, x,y-5, x,y-5, x,y, x,y, x-5,y+5, x-5,y+5, x,y, x,y, x-5,y-5, fill='black', width=2) # maybe the pianoscript design
+    #widget.create_line(x-5,y-5, x, y, x,y, x-5,y+5, width=2) # orginal klavarscribo design
+    widget.create_line(x,y, x,y+5, x,y+5, x,y-5, x,y-5, x,y, x,y, x-5,y+5, x-5,y+5, x,y, x,y, x-5,y-5, fill='black', width=1.5) # maybe the pianoscript design
+
+
+def time2tick(time, ticksperbeat, msperbeat):
+    return round((ticksperbeat * (1 / msperbeat) * 1000000 * time), 0)

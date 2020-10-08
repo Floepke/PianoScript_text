@@ -1,8 +1,6 @@
-import sys, os, platform, itertools
+import sys, os, platform
 from mido import MidiFile
-from decimal import Decimal
 from tkinter import END, filedialog, messagebox, scrolledtext, Scrollbar, simpledialog
-from itertools import tee, islice, chain
 from musicfunctions import *
 from logicfunctions import *
 
@@ -154,8 +152,9 @@ def buildGUI():
 #########################################################
 # File functions (openFile, saveFile, saveFileAs etc...)#
 #########################################################
-# opened file
-openedfile = []
+file = ''
+
+
 def openFile():
     print('openFile')
     # run basic functionality
@@ -163,11 +162,11 @@ def openFile():
                                   mode='rb', 
                                   title='Select a MIDI-file', 
                                   filetypes=[("MIDI-file", "*.mid")])
-    openedfile.clear()
-    openedfile.append(file.name)
-    print(openedfile)
+    file = file.name
+    print(file)
     root.CanvasPage.delete('all')
-    renderMusic("tralala")
+    renderMusic(file)
+    root.title(file)
 
 
 def exitRoot():# Working
@@ -193,35 +192,34 @@ ii = 100
 
 # default scale settings
 yscale = 5
-xscale = [5]
+xscale = 0.25
 
-def renderMusic(tralala):
+def renderMusic(file):
     root.CanvasPage.delete('all')
-    mid = MidiFile(openedfile[0])
+    mid = MidiFile(file)
     midimsg = []
     
 
     def setChannel():# this function changes the channel of MIDItracks to later on make the seperation for left and right hand.
         print('setChannel')
 
-    def translateMIDItoList():
+    def MIDImsgToList():
         #### put all needed messages in a list ####
-        ### storage 1 ###
-        mem1=0
         midimsgs = []
-        miditempo = []
         ticksperbeat = mid.ticks_per_beat
         msperbeat = 1
-
-
-        
+        mem1 = 0        
         # place messages in dict.
         for i in mid:
             midimsgs.append(i.dict())
-        # change time values from delta to relative time.
+        # time to tick
         for i in midimsgs:
-            time = i['time'] + mem1
-            i['time'] = time
+            i['time'] = time2tick(i['time'], ticksperbeat, msperbeat)
+            if i['type'] == 'set_tempo':
+                msperbeat = i['tempo']       
+        # delta to relative tick
+        for i in midimsgs:
+            i['time'] += mem1
             mem1 = i['time']
         # change every note_on with 0 velocity to note_off.
             if i['type'] == 'note_on' and i['velocity'] == 0:
@@ -237,175 +235,139 @@ def renderMusic(tralala):
                 midimsg.append([i['type'], i['time'], i['name']])
             if i['type'] == 'end_of_track':
                 midimsg.append([i['type'], i['time']])
-        
-        
-
-        
-        #### Converting time to ticks ####
-        ### storage 2 ###
-        mem2 = [0]
-        blck = [2, 5, 7, 10, 12, 14, 17, 19, 22, 24, 26, 29, 31, 34, 36, 38, 41, 43, 46, 48, 50, 53, 55, 58, 60, 62, 65, 67, 70, 72, 74, 77, 79, 82, 84, 86]
-        wht = [1, 3, 4, 6, 8, 9, 11, 13, 15, 16, 18, 20, 21, 23, 25, 27, 28, 30, 32, 33, 35, 37, 39, 40, 42, 44, 45, 47, 49, 51, 52, 54, 56, 57, 59, 61, 63, 64, 66, 68, 69, 71, 73, 75, 76, 78, 80, 81, 83, 85, 87, 88]
-
-
-
-        ## convert time to ticks. (tickgenerator) ##
-        for i in midimsg:
-            if i[0] == 'set_tempo':
-                msperbeat = i[2]
-            i[1] = round((ticksperbeat * (1 / msperbeat) * 1000000 * i[1]), 0)
         for i in midimsg: print(i)
 
 
-        ## define last noteoff time in ticks which is the length of the entire track. ##
+    def drawNotes():
+        ## Labelstorage ##
+        blck = [2, 5, 7, 10, 12, 14, 17, 19, 22, 24, 26, 29, 31, 34, 36, 38, 41, 43, 46, 48, 
+        50, 53, 55, 58, 60, 62, 65, 67, 70, 72, 74, 77, 79, 82, 84, 86]
+        wht = [1, 3, 4, 6, 8, 9, 11, 13, 15, 16, 18, 20, 21, 23, 25, 27, 28, 30, 32, 33, 35, 
+        37, 39, 40, 42, 44, 45, 47, 49, 51, 52, 54, 56, 57, 59, 61, 63, 64, 66, 68, 69, 71, 
+        73, 75, 76, 78, 80, 81, 83, 85, 87, 88]
+
+        # note on
+        for i in midimsg:
+            if i[0] == 'note_on' and i[4] == 0:
+                if i[2]-20 in blck:
+                    black_key_left(i[1]*xscale+2.5, -abs(i[2]*5), root.CanvasPage)
+                if i[2]-20 in wht:
+                    white_key_left(i[1]*xscale+2.5, -abs(i[2]*5), root.CanvasPage)
+            if i[0] == 'note_on' and i[4] > 0:
+                if i[2]-20 in blck:
+                    black_key_right(i[1]*xscale+2.5, -abs(i[2]*5), root.CanvasPage)
+                if i[2]-20 in wht:
+                    white_key_right(i[1]*xscale+2.5, -abs(i[2]*5), root.CanvasPage)
+        
+
+
+        # note off
         for i in midimsg:
             if i[0] == 'note_off':
-                mem2.append(i[1])
-                entirelength = mem2[-1]
-        
-        
-        #### Engraving the barlines ####
-        ### storage 3 ###
-        timechange = []
-        tctime = []
-        numerator = 4
-        denominator = 4
-        num = 0
-        den = 0
-        barx = 0
-        recx = 0
-        
-
-        ## add current timesig ##
-        measurecount = entirelength / (quartersFitInMeasure(numerator, denominator) * mid.ticks_per_beat)
-        sizeofmeasureinticks = quartersFitInMeasure(numerator, denominator) * mid.ticks_per_beat
-        recwidth = sizeofmeasureinticks / 4
-
-        for _ in range(int(measurecount)):
-            root.CanvasPage.create_line(barx*(xscale[0]/50)-1.5, 0, barx*(xscale[0]/50)-1.5, 500, width=2)
-            root.CanvasPage.create_text(barx*(xscale[0]/50)+15, 100, text=_+1)
-            barx += sizeofmeasureinticks
-            # create count rectangles
-            tanglex = sizeofmeasureinticks/4
-            # root.CanvasPage.create_rectangle(tanglex, 0, tanglex+100, 500, outline='', fill='#e3e3e3')
-            recx += recwidth/4
+                noteStop(i[1]*xscale-0.6, -abs(i[2]*5), root.CanvasPage)
 
 
-        #### Engraving the staff ####
-        ### storage 4 ###
+
+    def drawStaff():
         allnotes = []
-        entirelength = 0
-        measurecount = 0
-        mem3 = []
-
-
-
-        ## define highest notes and lowest for writing the right stafflines ##
+        
+        y = -550
         for i in midimsg:
             if i[0] == 'note_on':
                 allnotes.append(i[2])
 
 
-        ## define last noteoff time in ticks which is the length of the entire track ##
-        for i in midimsg:
-            if i[0] == 'note_off':
-                mem2.append(i[1])
-            entirelength = mem2[-1]
+        def staffLength():
+            length = []
+            for i in midimsg:
+                if i[0] == 'note_off':
+                    length.append(i[1])
+            return length[-1]*xscale
 
 
-        ## write the needed stafflines (the cleff is always printed) ##
         if allnotes:
             if min(allnotes) <= 23:
-                root.CanvasPage.create_line(0, 440, entirelength*(xscale[0]/50), 440, width=2.4)
+                root.CanvasPage.create_line(0, 440+y, staffLength(), 440+y, width=2.4)
             if min(allnotes) <= 28:
-                root.CanvasPage.create_line(0, 425, entirelength*(xscale[0]/50), 425, width=1)
-                root.CanvasPage.create_line(0, 415, entirelength*(xscale[0]/50), 415, width=1)
+                root.CanvasPage.create_line(0, 425+y, staffLength(), 425+y, width=1)
+                root.CanvasPage.create_line(0, 415+y, staffLength(), 415+y, width=1)
             if min(allnotes) <= 35:
-                root.CanvasPage.create_line(0, 400, entirelength*(xscale[0]/50), 400, width=2.4)
-                root.CanvasPage.create_line(0, 390, entirelength*(xscale[0]/50), 390, width=2.4)
-                root.CanvasPage.create_line(0, 380, entirelength*(xscale[0]/50), 380, width=2.4)
+                root.CanvasPage.create_line(0, 400+y, staffLength(), 400+y, width=2.4)
+                root.CanvasPage.create_line(0, 390+y, staffLength(), 390+y, width=2.4)
+                root.CanvasPage.create_line(0, 380+y, staffLength(), 380+y, width=2.4)
             if min(allnotes) <= 50:
-                root.CanvasPage.create_line(0, 365, entirelength*(xscale[0]/50), 365, width=1,)
-                root.CanvasPage.create_line(0, 355, entirelength*(xscale[0]/50), 355, width=1,)
+                root.CanvasPage.create_line(0, 365+y, staffLength(), 365+y, width=1,)
+                root.CanvasPage.create_line(0, 355+y, staffLength(), 355+y, width=1,)
             if min(allnotes) <= 57:
-                root.CanvasPage.create_line(0, 340, entirelength*(xscale[0]/50), 340, width=2.4)
-                root.CanvasPage.create_line(0, 330, entirelength*(xscale[0]/50), 330, width=2.4)
-                root.CanvasPage.create_line(0, 320, entirelength*(xscale[0]/50), 320, width=2.4)
+                root.CanvasPage.create_line(0, 340+y, staffLength(), 340+y, width=2.4)
+                root.CanvasPage.create_line(0, 330+y, staffLength(), 330+y, width=2.4)
+                root.CanvasPage.create_line(0, 320+y, staffLength(), 320+y, width=2.4)
             if min(allnotes) <= 52:
-                root.CanvasPage.create_line(0, 305, entirelength*(xscale[0]/50), 305, width=1)
-                root.CanvasPage.create_line(0, 295, entirelength*(xscale[0]/50), 295, width=1)
+                root.CanvasPage.create_line(0, 305+y, staffLength(), 305+y, width=1)
+                root.CanvasPage.create_line(0, 295+y, staffLength(), 295+y, width=1)
             if min(allnotes) <= 59:
-                root.CanvasPage.create_line(0, 280, entirelength*(xscale[0]/50), 280, width=2.4)
-                root.CanvasPage.create_line(0, 270, entirelength*(xscale[0]/50), 270, width=2.4)
-                root.CanvasPage.create_line(0, 260, entirelength*(xscale[0]/50), 260, width=2.4)
-            root.CanvasPage.create_line(0, 245, entirelength*(xscale[0]/50), 245, width=1, dash=(5, 5))
-            root.CanvasPage.create_line(0, 235, entirelength*(xscale[0]/50), 235, width=1, dash=(5, 5))
+                root.CanvasPage.create_line(0, 280+y, staffLength(), 280+y, width=2.4)
+                root.CanvasPage.create_line(0, 270+y, staffLength(), 270+y, width=2.4)
+                root.CanvasPage.create_line(0, 260+y, staffLength(), 260+y, width=2.4)
+            root.CanvasPage.create_line(0, 245+y, staffLength(), 245+y, width=1, dash=(5, 5))
+            root.CanvasPage.create_line(0, 235+y, staffLength(), 235+y, width=1, dash=(5, 5))
             if max(allnotes) >= 65:
-                root.CanvasPage.create_line(0, 220, entirelength*(xscale[0]/50), 220, width=2.4)
-                root.CanvasPage.create_line(0, 210, entirelength*(xscale[0]/50), 210, width=2.4)
-                root.CanvasPage.create_line(0, 200, entirelength*(xscale[0]/50), 200, width=2.4)
+                root.CanvasPage.create_line(0, 220+y, staffLength(), 220+y, width=2.4)
+                root.CanvasPage.create_line(0, 210+y, staffLength(), 210+y, width=2.4)
+                root.CanvasPage.create_line(0, 200+y, staffLength(), 200+y, width=2.4)
             if max(allnotes) >= 72:
-                root.CanvasPage.create_line(0, 185, entirelength*(xscale[0]/50), 185, width=1)
-                root.CanvasPage.create_line(0, 175, entirelength*(xscale[0]/50), 175, width=1)
+                root.CanvasPage.create_line(0, 185+y, staffLength(), 185+y, width=1)
+                root.CanvasPage.create_line(0, 175+y, staffLength(), 175+y, width=1)
             if max(allnotes) >= 77:
-                root.CanvasPage.create_line(0, 160, entirelength*(xscale[0]/50), 160, width=2.4)
-                root.CanvasPage.create_line(0, 150, entirelength*(xscale[0]/50), 150, width=2.4)
-                root.CanvasPage.create_line(0, 140, entirelength*(xscale[0]/50), 140, width=2.4)
+                root.CanvasPage.create_line(0, 160+y, staffLength(), 160+y, width=2.4)
+                root.CanvasPage.create_line(0, 150+y, staffLength(), 150+y, width=2.4)
+                root.CanvasPage.create_line(0, 140+y, staffLength(), 140+y, width=2.4)
             if max(allnotes) >= 84:
-                root.CanvasPage.create_line(0, 125, entirelength*(xscale[0]/50), 125, width=1)
-                root.CanvasPage.create_line(0, 115, entirelength*(xscale[0]/50), 115, width=1)
+                root.CanvasPage.create_line(0, 125+y, staffLength(), 125+y, width=1)
+                root.CanvasPage.create_line(0, 115+y, staffLength(), 115+y, width=1)
             if max(allnotes) >= 89:
-                root.CanvasPage.create_line(0, 100, entirelength*(xscale[0]/50), 100, width=2.4)
-                root.CanvasPage.create_line(0, 80, entirelength*(xscale[0]/50), 80, width=2.4)
-                root.CanvasPage.create_line(0, 70, entirelength*(xscale[0]/50), 70, width=2.4)
+                root.CanvasPage.create_line(0, 100+y, staffLength(), 100+y, width=2.4)
+                root.CanvasPage.create_line(0, 80+y, staffLength(), 80+y, width=2.4)
+                root.CanvasPage.create_line(0, 70+y, staffLength(), 70+y, width=2.4)
             if max(allnotes) >= 96:
-                root.CanvasPage.create_line(0, 55, entirelength*(xscale[0]/50), 55, width=1)
-                root.CanvasPage.create_line(0, 45, entirelength*(xscale[0]/50), 45, width=1)
+                root.CanvasPage.create_line(0, 55+y, staffLength(), 55+y, width=1)
+                root.CanvasPage.create_line(0, 45+y, staffLength(), 45+y, width=1)
             if max(allnotes) >= 101:
-                root.CanvasPage.create_line(0, 30, entirelength*(xscale[0]/50), 30, width=2.4)
-                root.CanvasPage.create_line(0, 20, entirelength*(xscale[0]/50), 20, width=2.4)
-                root.CanvasPage.create_line(0, 10, entirelength*(xscale[0]/50), 10, width=2.4)
+                root.CanvasPage.create_line(0, 30+y, staffLength(), 30+y, width=2.4)
+                root.CanvasPage.create_line(0, 20+y, staffLength(), 20+y, width=2.4)
+                root.CanvasPage.create_line(0, 10+y, staffLength(), 10+y, width=2.4)
 
 
-
-        ## note on ##
-        for i in midimsg:
-            if i[0] == 'note_on' and i[4] == 0:
-                if i[2]-20 in blck:
-                    black_key_left(i[1]*(xscale[0]/50)+2.5, -abs(i[2]*yscale)+yscale*100+50, root.CanvasPage)
-                if i[2]-20 in wht:
-                    white_key_left(i[1]*(xscale[0]/50)+2.5, -abs(i[2]*yscale)+yscale*100+50, root.CanvasPage)
-            if i[0] == 'note_on' and i[4] > 0:
-                if i[2]-20 in blck:
-                    black_key(i[1]*(xscale[0]/50)+2.5, -abs(i[2]*yscale)+yscale*100+50, root.CanvasPage)
-                if i[2]-20 in wht:
-                    white_key(i[1]*(xscale[0]/50)+2.5, -abs(i[2]*yscale)+yscale*100+50, root.CanvasPage)
+    def drawBarlinesAndGrid():
         
-        ## note off ##
-        for i in midimsg:
-            if i[0] == 'note_off':
-                noteStop(i[1]*(xscale[0]/50)-0.1, -abs(i[2]*yscale)+yscale*100+50, root.CanvasPage)
-                
 
-            
+        def barlines():
+            barlineheight = 0
 
 
-    ## function run order ##
-    translateMIDItoList()
-    root.CanvasPage.configure(scrollregion=root.CanvasPage.bbox('all'))
+        def grid():
+            pass
+
+
+    def setCanvasSize():
+        bbox = root.CanvasPage.configure(scrollregion=root.CanvasPage.bbox('all'))
+        middle = root.CanvasPage.canvasy(1000, gridspacing=None)
+        return bbox, middle
+
+
+    MIDImsgToList()
+    drawBarlinesAndGrid()
+    drawStaff()
+    drawNotes()
+    setCanvasSize()
+    
     
 
-def printX():
+def printX(file=file):
     x = simpledialog.askinteger('Xscale:', 'Set Xscale (min 0 max 100)', parent=root, minvalue=0, maxvalue=100)
-    xscale.clear()
-    xscale.append(int(x))
-    renderMusic('pompiedompiedom')
-    
-    
-def exportCanvas():
-    print('exportCanvas')
-    root.CanvasPage.postscript(file="~/Desktop/test.eps", width=0, height=0, x=500, y=1000)
-            
+    xscale = int(x)
+    print(file)
+    renderMusic(file)
 
 
 
@@ -413,7 +375,5 @@ def exportCanvas():
 # Program running order                                 #
 #########################################################
 buildGUI()
-root.bind('<Key>', renderMusic)
-openFile()
-
+renderMusic('moonlight.mid')
 root.mainloop()
