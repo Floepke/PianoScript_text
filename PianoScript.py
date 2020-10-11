@@ -61,7 +61,7 @@ def buildGUI():
     root.CanvasPage.configure(takefocus="0", bg=bgr)
 
 
-    vbar=Scrollbar(root.CanvasPage,orient='horizontal', width=15)
+    vbar=Scrollbar(root.CanvasPage,orient='horizontal', width=20)
     vbar.pack(side='bottom',fill='x')
     vbar.config(command=root.CanvasPage.xview)
     root.CanvasPage.configure(xscrollcommand=vbar.set)
@@ -198,9 +198,10 @@ def renderMusic(file):
     root.CanvasPage.delete('all')
     mid = MidiFile(file)
     midimsg = []
+    endoftrack = 0
     
 
-    def setChannel():# this function changes the channel of MIDItracks to later on make the seperation for left and right hand.
+    def setChannel():# this function changes the channel of notes to make the seperation for left and right hand.
         print('setChannel')
 
     def MIDImsgToList():
@@ -211,30 +212,22 @@ def renderMusic(file):
         mem1 = 0        
         # place messages in dict.
         for i in mid:
-            midimsgs.append(i.dict())
+            midimsg.append(i.dict())
         # time to tick
-        for i in midimsgs:
+        for i in midimsg:
             i['time'] = time2tick(i['time'], ticksperbeat, msperbeat)
             if i['type'] == 'set_tempo':
                 msperbeat = i['tempo']       
         # delta to relative tick
-        for i in midimsgs:
+        for i in midimsg:
             i['time'] += mem1
             mem1 = i['time']
         # change every note_on with 0 velocity to note_off.
             if i['type'] == 'note_on' and i['velocity'] == 0:
                 i['type'] = 'note_off'
-        # Add all usable messages in midimsg; the main midimessagelist.
-            if i['type'] == 'note_on' or i['type'] == 'note_off':
-                midimsg.append([i['type'], i['time'], i['note'], i['velocity'], i['channel']])
-            if i['type'] == 'time_signature':
-                midimsg.append([i['type'], i['time'], i['numerator'], i['denominator'], i['clocks_per_click'], i['notated_32nd_notes_per_beat']])
-            if i['type'] == 'set_tempo':
-                midimsg.append( [i['type'], i['time'], (i['tempo'])] )
-            if i['type'] == 'track_name':
-                midimsg.append([i['type'], i['time'], i['name']])
+        # set end of track
             if i['type'] == 'end_of_track':
-                midimsg.append([i['type'], i['time']])
+                endoftrack = i['time']
         for i in midimsg: print(i)
 
 
@@ -248,23 +241,24 @@ def renderMusic(file):
 
         # note on
         for i in midimsg:
-            if i[0] == 'note_on' and i[4] == 0:
-                if i[2]-20 in blck:
-                    black_key_left(i[1]*xscale+2.5, -abs(i[2]*5), root.CanvasPage)
-                if i[2]-20 in wht:
-                    white_key_left(i[1]*xscale+2.5, -abs(i[2]*5), root.CanvasPage)
-            if i[0] == 'note_on' and i[4] > 0:
-                if i[2]-20 in blck:
-                    black_key_right(i[1]*xscale+2.5, -abs(i[2]*5), root.CanvasPage)
-                if i[2]-20 in wht:
-                    white_key_right(i[1]*xscale+2.5, -abs(i[2]*5), root.CanvasPage)
+            if i['type'] == 'note_on' and i['channel'] == 0:
+                if i['note']-20 in blck:
+                    black_key_left(i['time']*xscale+3, -abs(i['note']*5), root.CanvasPage)
+                if i['note']-20 in wht:
+                    white_key_left(i['time']*xscale+3, -abs(i['note']*5), root.CanvasPage)
+                    
+            if i['type'] == 'note_on' and i['channel'] > 0:
+                if i['note']-20 in blck:
+                    black_key_right(i['time']*xscale+3, -abs(i['note']*5), root.CanvasPage)
+                if i['note']-20 in wht:
+                    white_key_right(i['time']*xscale+3, -abs(i['note']*5), root.CanvasPage)
         
 
 
         # note off
         for i in midimsg:
-            if i[0] == 'note_off':
-                noteStop(i[1]*xscale-0.6, -abs(i[2]*5), root.CanvasPage)
+            if i['type'] == 'note_off':
+                noteStop(i['time']*xscale-0.6, -abs(i['note']*5), root.CanvasPage)
 
 
 
@@ -273,15 +267,15 @@ def renderMusic(file):
         
         y = -550
         for i in midimsg:
-            if i[0] == 'note_on':
-                allnotes.append(i[2])
+            if i['type'] == 'note_on':
+                allnotes.append(i['note'])
 
 
         def staffLength():
             length = []
             for i in midimsg:
-                if i[0] == 'note_off':
-                    length.append(i[1])
+                if i['type'] == 'note_off':
+                    length.append(i['time'])
             return length[-1]*xscale
 
 
@@ -339,14 +333,57 @@ def renderMusic(file):
 
 
     def drawBarlinesAndGrid():
+        timechangelist = []
+        bardist = 0
         
-
+        
         def barlines():
-            barlineheight = 0
+            # make list of timesig changes and assigns the duration in ticks of the time signature.
+            timesiglist = []
+            for i in midimsg:
+                if i['type'] == 'time_signature':
+                    timesiglist.append([i['type'], i['time'], i['numerator'], i['denominator']])
+                if i['type'] == 'end_of_track':
+                    timesiglist.append([i['type'], i['time']])
+            mem3 = 0
+            for i in timesiglist:
+                timechangelist.append(i[1] - mem3)
+                mem3 = i[1]
+            timechangelist.remove(0)
+            for i, i2 in zip(timesiglist, timechangelist):
+                i[1] = i2
+
+            ## iterate over timesiglist to create barlines ##
+            
+            measureticks = 0
+            numberofbarlines = 0
+            mem4 = 0
+            measurecounter = 1
+            for i in timesiglist:
+                if i[0] == 'time_signature':
+                    lengthoftimesig = i[1]
+                    measureticks = measureTicks(i[2], i[3], mid.ticks_per_beat)
+                    numberofbarlines = int(lengthoftimesig / measureticks)
+                    print(numberofbarlines)
+                    for _ in range(numberofbarlines):
+                        root.CanvasPage.create_line(mem4*xscale, -100, mem4*xscale, -500, width=5, dash=6)
+                        root.CanvasPage.create_text(mem4*xscale, -525, text=measurecounter, anchor='w')
+                        root.CanvasPage.create_rectangle(mem4*xscale, -100, mem4*xscale+(measureticks/i[2])*xscale, -500, fill='grey85', outline='')
+                        root.CanvasPage.create_rectangle(mem4*xscale+(measureticks/i[2]*2)*xscale, -100, mem4*xscale+(measureticks/i[2]*3)*xscale, -500, fill='grey85', outline='')
+
+                        mem4 += measureticks
+                        measurecounter += 1
+
+
+
 
 
         def grid():
             pass
+
+
+        barlines()
+        grid()
 
 
     def setCanvasSize():
@@ -375,5 +412,5 @@ def printX(file=file):
 # Program running order                                 #
 #########################################################
 buildGUI()
-renderMusic('moonlight.mid')
+openFile()
 root.mainloop()

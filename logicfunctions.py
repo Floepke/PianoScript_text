@@ -20,3 +20,11 @@ def difference(x, y):
         return x-y
     if y>x:
         return y-x
+
+
+from itertools import tee, islice, chain
+def previous_and_next(some_iterable):
+    prevs, items, nexts = tee(some_iterable, 3)
+    prevs = chain([None], prevs)
+    nexts = chain(islice(nexts, 1, None), [None])
+    return zip(prevs, items, nexts)
