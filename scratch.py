@@ -1,0 +1,1 @@
+open('/testmidifiles/file.txt')
