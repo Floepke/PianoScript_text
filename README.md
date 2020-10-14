@@ -16,4 +16,4 @@ Advantages:
 
 Disasvantages:
 * the rhythmic notation is less clear, however sometimes it can be helpfull to have a hard rhythmic phrase in distances.
-* PianoScript gives no context about scales.
+* PianoScript gives no context about key signature.
