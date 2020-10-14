@@ -49,6 +49,7 @@ def buildGUI():
     root.configure(relief="ridge")
     root.configure(highlightcolor="black")
     root.protocol("WM_DELETE_WINDOW", exitRoot)
+    root.title("PianoScript")
 
     frame = tk.Frame(root).pack(expand=True, fill='both')
 
@@ -108,7 +109,8 @@ def buildGUI():
             background=_bg,
             font="TkMenuFont",
             foreground="#000000",
-            label="Export Pdf")
+            label="Export Pdf",
+            command=printCanvas)
     root.sub_menu.add_separator(
             background=_bg)
     root.sub_menu.add_command(
@@ -157,7 +159,6 @@ file = ''
 
 def openFile():
     print('openFile')
-    # run basic functionality
     file = filedialog.askopenfile(parent=root, 
                                   mode='rb', 
                                   title='Select a MIDI-file', 
@@ -166,7 +167,7 @@ def openFile():
     print(file)
     root.CanvasPage.delete('all')
     renderMusic(file)
-    root.title(file)
+    root.title(f"PianoScript | {file}")
 
 
 def exitRoot():# Working
@@ -188,46 +189,67 @@ octavesinmeasure = 4
 startoctave = 2
 measuresperline = 4
 measurewidth = printareawidth / measuresperline
-ii = 100
+
 
 # default scale settings
 yscale = 5
 xscale = 0.25
 
+counting = 0
+
 def renderMusic(file):
     root.CanvasPage.delete('all')
-    mid = MidiFile(file)
+    midifile = MidiFile(file)
     midimsg = []
-    endoftrack = 0
+    allnotes = []
     
 
     def setChannel():# this function changes the channel of notes to make the seperation for left and right hand.
         print('setChannel')
 
     def MIDImsgToList():
-        #### put all needed messages in a list ####
-        midimsgs = []
-        ticksperbeat = mid.ticks_per_beat
+        ticksperbeat = midifile.ticks_per_beat
         msperbeat = 1
-        mem1 = 0        
+        formem = 0
+        tslist = []
+        counting = 0
         # place messages in dict.
-        for i in mid:
+        for i in midifile:
             midimsg.append(i.dict())
         # time to tick
         for i in midimsg:
-            i['time'] = time2tick(i['time'], ticksperbeat, msperbeat)
+            i['time'] = round((ticksperbeat * (1 / msperbeat) * 1000000 * i['time']), 0)
             if i['type'] == 'set_tempo':
                 msperbeat = i['tempo']       
         # delta to relative tick
         for i in midimsg:
-            i['time'] += mem1
-            mem1 = i['time']
+            i['time'] += formem
+            formem = i['time']
         # change every note_on with 0 velocity to note_off.
             if i['type'] == 'note_on' and i['velocity'] == 0:
                 i['type'] = 'note_off'
-        # set end of track
+        # make list of all used notes to use later in the program.
+            if i['type'] == 'note_on':
+                allnotes.append(i['note'])
+        # remove unnessesary elements of 'time_signature'.
+            if i['type'] == 'time_signature':
+                i.pop('clocks_per_click', None)
+                i.pop('notated_32nd_notes_per_beat', None)
+        # add length(in ticks) of the current 'time_signature' as 'length'.
+                tslist.append([i['type'], i['time']])
             if i['type'] == 'end_of_track':
-                endoftrack = i['time']
+                tslist.append([i['type'], i['time']])
+        formem = 0
+        for i in tslist:
+            diff = difference(formem, i[1])
+            formem = i[1]
+            i[1] = diff
+        del tslist[0]
+        for i in midimsg:
+            if i['type'] == 'time_signature':
+                i['length'] = tslist[counting][1]
+                counting += 1
+  
         for i in midimsg: print(i)
 
 
@@ -263,127 +285,164 @@ def renderMusic(file):
 
 
     def drawStaff():
-        allnotes = []
-        
         y = -550
-        for i in midimsg:
-            if i['type'] == 'note_on':
-                allnotes.append(i['note'])
-
-
         def staffLength():
-            length = []
             for i in midimsg:
-                if i['type'] == 'note_off':
-                    length.append(i['time'])
-            return length[-1]*xscale
+                if i['type'] == 'end_of_track':
+                    return i['time']*xscale
 
-
-        if allnotes:
-            if min(allnotes) <= 23:
-                root.CanvasPage.create_line(0, 440+y, staffLength(), 440+y, width=2.4)
-            if min(allnotes) <= 28:
-                root.CanvasPage.create_line(0, 425+y, staffLength(), 425+y, width=1)
-                root.CanvasPage.create_line(0, 415+y, staffLength(), 415+y, width=1)
-            if min(allnotes) <= 35:
-                root.CanvasPage.create_line(0, 400+y, staffLength(), 400+y, width=2.4)
-                root.CanvasPage.create_line(0, 390+y, staffLength(), 390+y, width=2.4)
-                root.CanvasPage.create_line(0, 380+y, staffLength(), 380+y, width=2.4)
-            if min(allnotes) <= 50:
-                root.CanvasPage.create_line(0, 365+y, staffLength(), 365+y, width=1,)
-                root.CanvasPage.create_line(0, 355+y, staffLength(), 355+y, width=1,)
-            if min(allnotes) <= 57:
-                root.CanvasPage.create_line(0, 340+y, staffLength(), 340+y, width=2.4)
-                root.CanvasPage.create_line(0, 330+y, staffLength(), 330+y, width=2.4)
-                root.CanvasPage.create_line(0, 320+y, staffLength(), 320+y, width=2.4)
-            if min(allnotes) <= 52:
-                root.CanvasPage.create_line(0, 305+y, staffLength(), 305+y, width=1)
-                root.CanvasPage.create_line(0, 295+y, staffLength(), 295+y, width=1)
-            if min(allnotes) <= 59:
-                root.CanvasPage.create_line(0, 280+y, staffLength(), 280+y, width=2.4)
-                root.CanvasPage.create_line(0, 270+y, staffLength(), 270+y, width=2.4)
-                root.CanvasPage.create_line(0, 260+y, staffLength(), 260+y, width=2.4)
-            root.CanvasPage.create_line(0, 245+y, staffLength(), 245+y, width=1, dash=(5, 5))
-            root.CanvasPage.create_line(0, 235+y, staffLength(), 235+y, width=1, dash=(5, 5))
+        def staffLines():
+            if allnotes:
+                if min(allnotes) <= 23:
+                    root.CanvasPage.create_line(0, 440+y, staffLength(), 440+y, width=2.4)
+                if min(allnotes) <= 28:
+                    root.CanvasPage.create_line(0, 425+y, staffLength(), 425+y, width=1)
+                    root.CanvasPage.create_line(0, 415+y, staffLength(), 415+y, width=1)
+                if min(allnotes) <= 35:
+                    root.CanvasPage.create_line(0, 400+y, staffLength(), 400+y, width=2.4)
+                    root.CanvasPage.create_line(0, 390+y, staffLength(), 390+y, width=2.4)
+                    root.CanvasPage.create_line(0, 380+y, staffLength(), 380+y, width=2.4)
+                if min(allnotes) <= 50:
+                    root.CanvasPage.create_line(0, 365+y, staffLength(), 365+y, width=1,)
+                    root.CanvasPage.create_line(0, 355+y, staffLength(), 355+y, width=1,)
+                if min(allnotes) <= 57:
+                    root.CanvasPage.create_line(0, 340+y, staffLength(), 340+y, width=2.4)
+                    root.CanvasPage.create_line(0, 330+y, staffLength(), 330+y, width=2.4)
+                    root.CanvasPage.create_line(0, 320+y, staffLength(), 320+y, width=2.4)
+                if min(allnotes) <= 52:
+                    root.CanvasPage.create_line(0, 305+y, staffLength(), 305+y, width=1)
+                    root.CanvasPage.create_line(0, 295+y, staffLength(), 295+y, width=1)
+                if min(allnotes) <= 59:
+                    root.CanvasPage.create_line(0, 280+y, staffLength(), 280+y, width=2.4)
+                    root.CanvasPage.create_line(0, 270+y, staffLength(), 270+y, width=2.4)
+                    root.CanvasPage.create_line(0, 260+y, staffLength(), 260+y, width=2.4)
+                root.CanvasPage.create_line(0, 245+y, staffLength(), 245+y, width=1, dash=(5, 5))
+                root.CanvasPage.create_line(0, 235+y, staffLength(), 235+y, width=1, dash=(5, 5))
+                if max(allnotes) >= 65:
+                    root.CanvasPage.create_line(0, 220+y, staffLength(), 220+y, width=2.4)
+                    root.CanvasPage.create_line(0, 210+y, staffLength(), 210+y, width=2.4)
+                    root.CanvasPage.create_line(0, 200+y, staffLength(), 200+y, width=2.4)
+                if max(allnotes) >= 72:
+                    root.CanvasPage.create_line(0, 185+y, staffLength(), 185+y, width=1)
+                    root.CanvasPage.create_line(0, 175+y, staffLength(), 175+y, width=1)
+                if max(allnotes) >= 77:
+                    root.CanvasPage.create_line(0, 160+y, staffLength(), 160+y, width=2.4)
+                    root.CanvasPage.create_line(0, 150+y, staffLength(), 150+y, width=2.4)
+                    root.CanvasPage.create_line(0, 140+y, staffLength(), 140+y, width=2.4)
+                if max(allnotes) >= 84:
+                    root.CanvasPage.create_line(0, 125+y, staffLength(), 125+y, width=1)
+                    root.CanvasPage.create_line(0, 115+y, staffLength(), 115+y, width=1)
+                if max(allnotes) >= 89:
+                    root.CanvasPage.create_line(0, 100+y, staffLength(), 100+y, width=2.4)
+                    root.CanvasPage.create_line(0, 90+y, staffLength(), 90+y, width=2.4)
+                    root.CanvasPage.create_line(0, 80+y, staffLength(), 80+y, width=2.4)
+                if max(allnotes) >= 96:
+                    root.CanvasPage.create_line(0, 65+y, staffLength(), 65+y, width=1)
+                    root.CanvasPage.create_line(0, 55+y, staffLength(), 55+y, width=1)
+                if max(allnotes) >= 101:
+                    root.CanvasPage.create_line(0, 40+y, staffLength(), 40+y, width=2.4)
+                    root.CanvasPage.create_line(0, 30+y, staffLength(), 30+y, width=2.4)
+                    root.CanvasPage.create_line(0, 20+y, staffLength(), 20+y, width=2.4)
+        
+        
+        def staffStart():
+            counting = 0
             if max(allnotes) >= 65:
-                root.CanvasPage.create_line(0, 220+y, staffLength(), 220+y, width=2.4)
-                root.CanvasPage.create_line(0, 210+y, staffLength(), 210+y, width=2.4)
-                root.CanvasPage.create_line(0, 200+y, staffLength(), 200+y, width=2.4)
+                counting += 35
             if max(allnotes) >= 72:
-                root.CanvasPage.create_line(0, 185+y, staffLength(), 185+y, width=1)
-                root.CanvasPage.create_line(0, 175+y, staffLength(), 175+y, width=1)
+                counting += 25
             if max(allnotes) >= 77:
-                root.CanvasPage.create_line(0, 160+y, staffLength(), 160+y, width=2.4)
-                root.CanvasPage.create_line(0, 150+y, staffLength(), 150+y, width=2.4)
-                root.CanvasPage.create_line(0, 140+y, staffLength(), 140+y, width=2.4)
+                counting += 35
             if max(allnotes) >= 84:
-                root.CanvasPage.create_line(0, 125+y, staffLength(), 125+y, width=1)
-                root.CanvasPage.create_line(0, 115+y, staffLength(), 115+y, width=1)
+                counting += 25
             if max(allnotes) >= 89:
-                root.CanvasPage.create_line(0, 100+y, staffLength(), 100+y, width=2.4)
-                root.CanvasPage.create_line(0, 80+y, staffLength(), 80+y, width=2.4)
-                root.CanvasPage.create_line(0, 70+y, staffLength(), 70+y, width=2.4)
+                counting += 35
             if max(allnotes) >= 96:
-                root.CanvasPage.create_line(0, 55+y, staffLength(), 55+y, width=1)
-                root.CanvasPage.create_line(0, 45+y, staffLength(), 45+y, width=1)
+                counting += 25
             if max(allnotes) >= 101:
-                root.CanvasPage.create_line(0, 30+y, staffLength(), 30+y, width=2.4)
-                root.CanvasPage.create_line(0, 20+y, staffLength(), 20+y, width=2.4)
-                root.CanvasPage.create_line(0, 10+y, staffLength(), 10+y, width=2.4)
+                counting += 35
+            return -abs(counting)
 
 
-    def drawBarlinesAndGrid():
-        timechangelist = []
-        bardist = 0
-        
-        
+        def staffHeigth():
+            counting = 0
+            if min(allnotes) <= 23:
+                counting += 15
+            if min(allnotes) <= 28:
+                counting += 25
+            if min(allnotes) <= 35:
+                counting += 35
+            if min(allnotes) <= 50:
+                counting += 25
+            if min(allnotes) <= 57:
+                counting += 35
+            if min(allnotes) <= 52:
+                counting += 25
+            if min(allnotes) <= 59:
+                counting += 35
+            counting += 10
+            if max(allnotes) >= 65:
+                counting += 35
+            if max(allnotes) >= 72:
+                counting += 25
+            if max(allnotes) >= 77:
+                counting += 35
+            if max(allnotes) >= 84:
+                counting += 25
+            if max(allnotes) >= 89:
+                counting += 35
+            if max(allnotes) >= 96:
+                counting += 25
+            if max(allnotes) >= 101:
+                counting += 35
+            return counting
+
+
+        def barline(x, blnumber, widget):
+            barline_start = staffStart()
+            barline_end = barline_start + staffHeigth()
+            widget.create_line(x, barline_start-315, x, barline_end-315, width=2, dash=6)
+            widget.create_text(x, barline_start-355, text=blnumber, anchor='w')
+
+
         def barlines():
-            # make list of timesig changes and assigns the duration in ticks of the time signature.
-            timesiglist = []
+            formem = 0
+            barlinecount = 2
             for i in midimsg:
                 if i['type'] == 'time_signature':
-                    timesiglist.append([i['type'], i['time'], i['numerator'], i['denominator']])
-                if i['type'] == 'end_of_track':
-                    timesiglist.append([i['type'], i['time']])
-            mem3 = 0
-            for i in timesiglist:
-                timechangelist.append(i[1] - mem3)
-                mem3 = i[1]
-            timechangelist.remove(0)
-            for i, i2 in zip(timesiglist, timechangelist):
-                i[1] = i2
-
-            ## iterate over timesiglist to create barlines ##
-            
-            measureticks = 0
-            numberofbarlines = 0
-            mem4 = 0
-            measurecounter = 1
-            for i in timesiglist:
-                if i[0] == 'time_signature':
-                    lengthoftimesig = i[1]
-                    measureticks = measureTicks(i[2], i[3], mid.ticks_per_beat)
-                    numberofbarlines = int(lengthoftimesig / measureticks)
-                    print(numberofbarlines)
-                    for _ in range(numberofbarlines):
-                        root.CanvasPage.create_line(mem4*xscale, -100, mem4*xscale, -500, width=5, dash=6)
-                        root.CanvasPage.create_text(mem4*xscale, -525, text=measurecounter, anchor='w')
-                        root.CanvasPage.create_rectangle(mem4*xscale, -100, mem4*xscale+(measureticks/i[2])*xscale, -500, fill='grey85', outline='')
-                        root.CanvasPage.create_rectangle(mem4*xscale+(measureticks/i[2]*2)*xscale, -100, mem4*xscale+(measureticks/i[2]*3)*xscale, -500, fill='grey85', outline='')
-
-                        mem4 += measureticks
-                        measurecounter += 1
-
-
-
+                    measureticklength = measureTicks(i['numerator'], i['denominator'], midifile.ticks_per_beat)
+                    print(i['length'] / measureticklength)
+                    for _ in range(int(i['length'] / measureticklength)):
+                        formem += measureticklength
+                        barline(formem*xscale, barlinecount, root.CanvasPage)
+                        barlinecount += 1
+            # startline
+            barline(0, 1, root.CanvasPage)
+            # endline
+            barline(staffLength(), '', root.CanvasPage)
 
 
         def grid():
-            pass
-
-
-        barlines()
+            formem = 0
+            for i in midimsg:
+                if i['type'] == 'time_signature':
+                    root.CanvasPage.create_text(i['time']*xscale+10, staffStart()+staffHeigth()-300, text=f"{i['numerator']}/{i['denominator']}", anchor='w')
+                    measureticklength = measureTicks(i['numerator'], i['denominator'], midifile.ticks_per_beat)
+                    for _ in range(int(i['length'] / measureticklength)):
+                        white_grey = 0
+                        for x in range(i['numerator']):
+                            if white_grey == 0:
+                                white_grey = 1
+                            else:
+                                start1 = formem + (measureticklength / i['numerator'] * x) * xscale
+                                end1 = start1 + (measureticklength / i['numerator']) * xscale
+                                root.CanvasPage.create_rectangle(start1, staffStart()-315, end1, staffStart()+staffHeigth()-315, fill='#ececec', outline='')
+                                white_grey = 0
+                        formem += measureticklength*xscale
         grid()
+        barlines()
+        staffLines()
+        
 
 
     def setCanvasSize():
@@ -393,10 +452,10 @@ def renderMusic(file):
 
 
     MIDImsgToList()
-    drawBarlinesAndGrid()
     drawStaff()
     drawNotes()
     setCanvasSize()
+    
     
     
 
@@ -407,10 +466,15 @@ def printX(file=file):
     renderMusic(file)
 
 
+def printCanvas():
+    root.CanvasPage.postscript(file="~/Desktop/export.ps", colormode='color')
+
+
 
 #########################################################
 # Program running order                                 #
 #########################################################
 buildGUI()
 openFile()
+#renderMusic('/home/floepie/MEGAprogram/PianoScript/testmidifiles/test.mid')
 root.mainloop()
