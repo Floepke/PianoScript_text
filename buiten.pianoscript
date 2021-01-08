@@ -1,0 +1,22 @@
+// header
+title=Title
+composer=Composer
+copyright=copyrights reserved
+
+// grid
+grid;<E*3>;0;1
+grid;<W>;2;12
+
+
+// voices
+{UP
+	<E>g4-a4-b4 // upbeat
+	<Q>c5 c5 c5 c5 //1
+	<E>c5-a4-d4-e4 <Q>f4 <E>e4-f4 //2
+	d5-c5-<Q>b4 <E>c5-b4-<Q>d4 //3
+	<E>f4-e4-c4-d4-<Q>e4
+}
+
+{DOWN
+	// music goes here
+}
