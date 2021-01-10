@@ -1,20 +1,6 @@
 ### IMPORTS ###
 from tkinter import Tk, Text, PanedWindow, Canvas, Scrollbar, Menu, filedialog, END, messagebox, simpledialog
-import platform
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+import platform, subprocess, os
 
 ### GUI ###
 # Root
@@ -83,18 +69,6 @@ if platform.system() == 'Linux':
     textw.bind("<Button-3>", do_popup)
 if platform.system() == 'Darwin':
     textw.bind("<Button-2>", do_popup)
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -192,10 +166,9 @@ def newFile():
 	filechange = False
 	filepath = 'New'
 	textw.delete('1.0', END)
-	textw.insert('1.0', open('test.pianoscript', 'r').read()) # For test purposes
-
+	textw.insert('1.0', open('empty.pianoscript', 'r').read()) # For test purposes
+	render('q')
 	root.title(f'PianoScript - {filepath}')
-	render('x')
 	
 	return
 
@@ -219,6 +192,7 @@ def openFile():
 
 		textw.delete('1.0', END)
 		textw.insert('1.0', f.read())
+		render('q')
 
 	else:
 
@@ -227,7 +201,6 @@ def openFile():
 	filechange = False
 	filepath = f.name
 	root.title(f'PianoScript - {filepath}')
-	render('x')
 	
 	return
 
@@ -331,22 +304,9 @@ menu.add_command(label ="Quit", command=quitEditor)
 
 
 
-
-
-
 ##########################################################################
 ## Tools			 													##
 ##########################################################################
-
-## constants ##
-scale = 100
-paperheigth = root.winfo_fpixels('1m') * 297 * (scale/100)  # a4 210x297 mm
-paperwidth = root.winfo_fpixels('1m') * 210 * (scale/100)
-marginsx = 20
-marginsy = 20
-printareawidth = paperwidth - (marginsx * 2)
-printareaheight = paperheigth - (marginsy * 2)-20
-
 
 def bracketExtractor(text, openbracket, closebracket):
 
@@ -375,17 +335,23 @@ def bracketExtractor(text, openbracket, closebracket):
 	return voicelist
 
 
-def search_word_return_index(search, symbol):
+def strip_file(f):
+	fl = ''
+	for i in f.split('\n'):
+		find = i.find('//')
+		if find >= 0:
+			i = i[:find]
+			fl += i+'\n'
+		else:
+			fl += i+'\n'
 
-		cntr = -1
-		index = []
-		for i in search:
-			cntr += 1
-			if i.find(symbol) == 0:
-				index.append(cntr)
-			else:
-				pass
-		return index
+	f = ''
+	for i in fl.split('\n'):
+		if i == '':
+			pass
+		else:
+			f += i+'\n'
+	return f
 
 
 def durationConverter(string): # converts duration string to length in 'pianotick' format.
@@ -433,6 +399,31 @@ def durationConverter(string): # converts duration string to length in 'pianotic
 	return dur
 
 
+def string2pitch(string):
+	pitchdict = {
+	# Oct 0
+	'a0':1, 'A0':2, 'b0':3,
+	# Oct 1
+	'c1':4, 'C1':5, 'd1':6, 'D1':7, 'e1':8, 'f1':9, 'F1':10, 'g1':11, 'G1':12, 'a1':13, 'A1':14, 'b1':15, 
+	# Oct 2
+	'c2':16, 'C2':17, 'd2':18, 'D2':19, 'e2':20, 'f2':21, 'F2':22, 'g2':23, 'G2':24, 'a2':25, 'A2':26, 'b2':27,
+	# Oct 3
+	'c3':28, 'C3':29, 'd3':30, 'D3':31, 'e3':32, 'f3':33, 'F3':34, 'g3':35, 'G3':36, 'a3':37, 'A3':38, 'b3':39,
+	# Oct 4
+	'c4':40, 'C4':41, 'd4':42, 'D4':43, 'e4':44, 'f4':45, 'F4':46, 'g4':47, 'G4':48, 'a4':49, 'A4':50, 'b4':51,
+	# Oct 5
+	'c5':52, 'C5':53, 'd5':54, 'D5':55, 'e5':56, 'f5':57, 'F5':58, 'g5':59, 'G5':60, 'a5':61, 'A5':62, 'b5':63,
+	# Oct 6
+	'c6':64, 'C6':65, 'd6':66, 'D6':67, 'e6':68, 'f6':69, 'F6':70, 'g6':71, 'G6':72, 'a6':73, 'A6':74, 'b6':75,
+	# Oct 7
+	'c7':76, 'C7':77, 'd7':78, 'D7':79, 'e7':80, 'f7':81, 'F7':82, 'g7':83, 'G7':84, 'a7':85, 'A7':86, 'b7':87,
+	# Oct 8
+	'c8':88
+	}
+	ret = pitchdict[string]
+	return ret
+
+
 def barline_pos_list(gridlist):
 	barlinepos = [0]
 	for grid in gridlist:
@@ -461,28 +452,9 @@ def newline_pos_list(gridlist, mpline):
 	return linelist
 
 
-
-def voice_per_line(grid, mpline, voices):
-	'''returns a list with 'lines' of music
-	which contain notes. structure:
-	[[lines[notes]]'''
-	newlinepos = newline_pos_list(grid, mpline)
-	voiceperline = []
-	bottpos = 0
-	for newln in newlinepos:
-		hlplst = []
-		for note in voices:
-			if note[2] >= bottpos and note[2] < newln:
-				hlplst.append(note)
-		voiceperline.append(hlplst)
-		bottpos = newln
-	
-	return voiceperline
-
-
 def staff_height(mn, mx):
 	'''
-	This function returns the height of the staff based on the
+	This function returns the height of a staff based on the
 	lowest and highest note.
 	'''	
 	staffheight = 0
@@ -520,72 +492,6 @@ def staff_height(mn, mx):
 	if mn >= 1 and mn <= 3:
 		staffheight += 195
 	return staffheight
-
-
-
-def line_height_list(grid, mpline, voices):
-	'''returns a list of heights for each line of music'''
-
-	voiceperline = voice_per_line(grid, mpline, voices)
-	linentlst = []
-	lineheightlst = []
-
-	for line in voiceperline:
-		notelst = []
-		for note in line:
-			notelst.append(note[1])
-		linentlst.append(notelst)
-	for height in linentlst:
-		if height:
-			staffheight = staff_height(min(height), max(height))
-			lineheightlst.append(staffheight)
-		else:
-			staffheight = staff_height(40, 44)
-			lineheightlst.append(staffheight)
-	return lineheightlst
-
-
-def page_list(grid, mpline, voices, printareaheight):
-	'''returns a list of lines of notes'''
-	linevoices = voice_per_line(grid, mpline, voices)
-	lineheight = line_height_list(grid, mpline, voices)
-
-	cursy = 0
-	count = -1
-	finalcount = len(lineheight)-1
-	page = []
-	pages = [] # fn outputlist
-
-	for line, height in zip(linevoices, lineheight):
-
-		count += 1
-		height = height + systemspacing + cursy
-		# print('!', count+1, line, height, printareaheight)
-		if count == finalcount:
-			if height <= printareaheight:
-				page.append(line)
-				pages.append(page)
-			elif height > printareaheight:
-				pages.append(page)
-				page = []
-				page.append(line)
-				pages.append(page)
-			else:
-				pass
-			break
-
-		if height <= printareaheight:
-			page.append(line)
-			cursy = height
-		elif height > printareaheight:
-			pages.append(page)
-			page = []
-			page.append(line)
-			cursy = lineheight[count] # maybe we need to add systemspacing variable
-		else:
-			pass
-	
-	return pages
 
 
 def draw_staff_lines(y, mn, mx):
@@ -700,7 +606,7 @@ def draw_staff_lines(y, mn, mx):
 
 def draw_paper(y):
 			
-			canvas.create_rectangle(55, 55+y, 55+paperwidth, 55+paperheigth+y, fill='black', outline='')
+			#canvas.create_rectangle(55, 55+y, 55+paperwidth, 55+paperheigth+y, fill='black', outline='')
 			canvas.create_rectangle(50, 50+y, 50+paperwidth, 50+paperheigth+y, fill='white', outline='')
 			#canvas.create_rectangle(70, 70+y, 70+printareawidth, 70+printareaheight+y, fill='', outline='blue')
 
@@ -795,25 +701,6 @@ def note_y_pos(note, mn, mx, cursy):
 
 	return (cursy + c4) + (40 - note) * 5
 
-def diff(x, y):
-	if x >= y:
-		return x - y
-	elif y > x:
-		return y - x
-	else:
-		pass
-	return
-
-
-def event_x_pos(pos, linenr):
-	newlinepos = newline_pos_list(grid, mpline)
-	newlinepos.insert(0, 0)
-	linelength = diff(newlinepos[linenr], newlinepos[linenr-1])
-	factor = printareawidth / linelength
-	pos = pos - newlinepos[linenr-1]
-	xpos = pos * factor + 70
-	return xpos
-
 
 def note_on(x1, x2, y, linenr):
 	x1 = event_x_pos(x1, linenr)
@@ -822,20 +709,47 @@ def note_on(x1, x2, y, linenr):
 	canvas.create_line(x2, y-5, x2, y+5, width=2)
 
 
-def barline_list(grid):
-    barlines = []
-    mem = 0
-    for g in grid:
-        
-        for i in range(g[3]):
-            barlines.append(['barline', mem, g[2]])
-            mem += g[1]
-    return barlines
+def event_x_pos(pos, linenr):
+	newlinepos = newline_pos_list(grid, mpline)
+	newlinepos.insert(0, 0)
+	linelength = newlinepos[linenr] - newlinepos[linenr-1]
+	factor = printareawidth / linelength
+	pos = pos - newlinepos[linenr-1]
+	xpos = pos * factor + 70
+	return xpos
 
 
+def special_string_change_tool(string, startbracket, endbracket):
+
+    def replacer(s, newstring, index, nofail=False):
+        # raise an error if index is outside of the string
+        if not nofail and index not in range(len(s)):
+            raise ValueError("index outside given string")
+
+        # if not erroring, but the index is still not in the correct range..
+        if index < 0:  # add it to the beginning
+            return newstring + s
+        if index > len(s):  # add it to the end
+            return s + newstring
+
+        # insert the new string between "slices" of the original
+        return s[:index] + newstring + s[index + 1:]
+
+    findex = -1
+    for sym in string:
+        findex += 1
+        if sym == startbracket:
+            rindex = findex
+            for i in string[findex+1:]:
+                rindex += 1
+                if i == endbracket:
+                    break
+                else:
+                    string = replacer(string, "*", rindex)
+    return string
 
 ##########################################################################
-## Main			 														##
+## Main 			 													##
 ##########################################################################
 
 
@@ -851,11 +765,6 @@ def barline_list(grid):
 
 
 
-
-
-## render variables ##
-titlepage = True
-pagenumber = 1
 
 
 ## score variables ##
@@ -866,59 +775,36 @@ composer = ''
 copyright = ''
 # settings:
 mpline = 4
-mgrid = 4
 systemspacing = 50
+scale = 100
+titlespace = 60
 # music:
 grid = []
-voices = []
-measurelines = []
+msg = []
+pagespace = []
 
-def render(y):
-	global title, subtitle, composer, copyright, mpline, grid, voices, staff, mgrid, scale, paperheigth, paperwidth, marginsx, marginsy, printareawidth, printareaheight
-	
-	fileChecker()
+scale_S = scale/100
+## constants ##
+paperheigth = root.winfo_fpixels('1m') * 297 * (scale_S)  # a4 210x297 mm
+paperwidth = root.winfo_fpixels('1m') * 210 * (scale_S)
+marginsx = 40 * (scale_S)
+marginsy = 60 * (scale_S)
+printareawidth = paperwidth - marginsx
+printareaheight = paperheigth - marginsy
 
-	#clear score lists and variables for rerendering
-	title = ''
-	subtitle = ''
-	composer = ''
-	copyright = ''
-	mpline = 5
-	mgrid = 4
-	scale = 100
+
+def render(q):
+	global title, subtitle, composer, copyright, mpline, systemspacing, scale, grid, msg, paperheigth, paperwidth, marginsy, marginsx, printareaheight, printareawidth
 	grid = []
-	staff = []
-	voices = []
+	msg = []
+	
 
-	def readFile():# this function sets a set of lists and preferences from the score file.
-		global title, subtitle, composer, copyright, mpline, grid, voices, staff, mgrid, scale, paperheigth, paperwidth, marginsx, marginsy, printareawidth, printareaheight
+	def reading():
+		global scale_S, title, subtitle, composer, copyright, mpline, systemspacing, scale, grid, msg, paperheigth, paperwidth, marginsy, marginsx, printareaheight, printareawidth
+		file = strip_file(getFile())
 
-
-		# remove comments
-		def strip_file(f):
-			fl = ''
-			for i in f.split('\n'):
-				find = i.find('//')
-				if find >= 0:
-					i = i[:find]
-					fl += i+'\n'
-				else:
-					fl += i+'\n'
-
-			f = ''
-			for i in fl.split('\n'):
-				if i == '':
-					pass
-				else:
-					f += i+'\n'
-			return f
-		
-
-		# remove comments and empty lines from file
-		f = strip_file(getFile())
-		
 		# set titles if in file
-		for i in f.split('\n'):
+		for i in file.split('\n'):
 			if 'title' in i:
 				index = i.find('=')+1
 				i = i[index:]
@@ -961,16 +847,22 @@ def render(y):
 			else:
 				pass
 
+			if 'systemspace' in i:
+				index = i.find('=')+1
+				i = i[index:]
+				systemspacing = int(i)
+			else:
+				pass
+
 			if 'scale' in i:
 				index = i.find('=')+1
 				i = i[index:]
 				scale = int(i)
-				paperheigth = root.winfo_fpixels('1m') * 297 * (scale/100)  # a4 210x297 mm
-				paperwidth = root.winfo_fpixels('1m') * 210 * (scale/100)
-				marginsx = 20
-				marginsy = 20
-				printareawidth = paperwidth - (marginsx * 2)
-				printareaheight = paperheigth - (marginsy * 2)-20
+				scale_S = scale/100
+				paperheigth = root.winfo_fpixels('1m') * 297 * (scale_S)  # a4 210x297 mm
+				paperwidth = root.winfo_fpixels('1m') * 210 * (scale_S)
+				printareawidth = paperwidth - marginsx
+				printareaheight = paperheigth - marginsy
 			else:
 				pass
 
@@ -984,51 +876,34 @@ def render(y):
 				pass
 
 
-		### VOICES ###
-		voices = bracketExtractor(f, '{', '}')
 
+
+
+
+
+
+
+
+		### reading voices ##
+		msgs = bracketExtractor(file, '{', '}')
 		V = []
-
-		for v in voices:
+		for v in msgs:
 			V.append("".join(v.split()))
-
-		voices = V
-
-
-		def string2pitch(string):
-			pitchdict = {
-			# Oct 0
-			'a0':1, 'A0':2, 'b0':3,
-			# Oct 1
-			'c1':4, 'C1':5, 'd1':6, 'D1':7, 'e1':8, 'f1':9, 'F1':10, 'g1':11, 'G1':12, 'a1':13, 'A1':14, 'b1':15, 
-			# Oct 2
-			'c2':16, 'C2':17, 'd2':18, 'D2':19, 'e2':20, 'f2':21, 'F2':22, 'g2':23, 'G2':24, 'a2':25, 'A2':26, 'b2':27,
-			# Oct 3
-			'c3':28, 'C3':29, 'd3':30, 'D3':31, 'e3':32, 'f3':33, 'F3':34, 'g3':35, 'G3':36, 'a3':37, 'A3':38, 'b3':39,
-			# Oct 4
-			'c4':40, 'C4':41, 'd4':42, 'D4':43, 'e4':44, 'f4':45, 'F4':46, 'g4':47, 'G4':48, 'a4':49, 'A4':50, 'b4':51,
-			# Oct 5
-			'c5':52, 'C5':53, 'd5':54, 'D5':55, 'e5':56, 'f5':57, 'F5':58, 'g5':59, 'G5':60, 'a5':61, 'A5':62, 'b5':63,
-			# Oct 6
-			'c6':64, 'C6':65, 'd6':66, 'D6':67, 'e6':68, 'f6':69, 'F6':70, 'g6':71, 'G6':72, 'a6':73, 'A6':74, 'b6':75,
-			# Oct 7
-			'c7':76, 'C7':77, 'd7':78, 'D7':79, 'e7':80, 'f7':81, 'F7':82, 'g7':83, 'G7':84, 'a7':85, 'A7':86, 'b7':87,
-			# Oct 8
-			'c8':88
-			}
-			return pitchdict[string]
-
+		msgs = V
 		
+
 		## create messages in list from file ##
 		voicelist = []
-
-		for voice in voices:
+		ncounter = 0
+		prevnote = 0
+		for mess in msgs:
 			voicelist.insert(0, [])
 			splitnote = []
 			
+			
 			# UP
 			index = -1
-			for symbol in voice:
+			for symbol in mess:
 				index += 1
 				fnd = symbol.find('R')
 				if fnd == 0:
@@ -1039,7 +914,7 @@ def render(y):
 			
 			# DOWN
 			index = -1
-			for symbol in voice:
+			for symbol in mess:
 				index += 1
 				fnd = symbol.find('L')
 				if fnd == 0:
@@ -1050,7 +925,7 @@ def render(y):
 
 			# rest
 			index = -1
-			for symbol in voice:
+			for symbol in mess:
 				index += 1
 				fnd = symbol.find('r')
 				if fnd == 0:
@@ -1059,34 +934,67 @@ def render(y):
 					pass
 
 
+
 			# duration
 			index = -1
-			for symbol in voice:
+			for symbol in mess:
 				index += 1
 				fnd = symbol.find('<')
 				if fnd == 0:
-					d = voice[index+1:voice[index:].find('>') + index] # reads duration in string format.
-					duration = durationConverter(d)
-					voicelist[0].append([index, 'duration', duration])
+					d = mess[index+1:mess[index:].find('>') + index] # reads duration in string format.
+					if d[0] == '*':
+						pass
+					else:
+						duration = durationConverter(d)
+						voicelist[0].append([index, 'duration', duration])
 				else:
 					pass
+
+			strippedmess = special_string_change_tool(mess, '<', '>')
+			index = -1
+			for symbol in strippedmess:
+				index += 1
+				fnd = symbol.find('W')
+				if fnd == 0:
+					voicelist[0].append([index, 'duration', 1024])
+				fnd = symbol.find('H')
+				if fnd == 0:
+					voicelist[0].append([index, 'duration', 512])
+				fnd = symbol.find('Q')
+				if fnd == 0:
+					voicelist[0].append([index, 'duration', 256])
+				fnd = symbol.find('E')
+				if fnd == 0:
+					voicelist[0].append([index, 'duration', 128])
+				fnd = symbol.find('S')
+				if fnd == 0:
+					voicelist[0].append([index, 'duration', 64])
+				fnd = symbol.find('T')
+				if fnd == 0:
+					voicelist[0].append([index, 'duration', 32])
+				
 
 
 			# note
 			index = -1
-			for symbol in voice:
+			for symbol in mess:
 				index += 1
+				ncounter += 1
 				if symbol in ['c', 'C', 'd', 'D', 'e', 'f', 'F', 'g', 'G', 'a', 'A', 'b']:
-					if voice[index+1] in ['1', '2', '3', '4', '5', '6', '7', '8', '0']:
-						note = string2pitch(voice[index]+voice[index+1])
-						try:	
-							if voice[index+2] == '-':#if '-' after note
-								voicelist[0].append([index, 'note', note, 1])
-							else:
-								voicelist[0].append([index, 'note', note, 0])
-						except IndexError:
-							voicelist[0].append([index, 'note', note, 0])
-					else:
+					try:
+						if mess[index+1] in ['1', '2', '3', '4', '5', '6', '7', '8', '0']:
+							note = string2pitch(mess[index]+mess[index+1])
+							prevnote = note
+							try:	
+								if mess[index+2] == '-':#if '-' after note
+									voicelist[0].append([index, 'note', note, 1, ncounter])
+								else:
+									voicelist[0].append([index, 'note', note, 0, ncounter])
+							except IndexError:
+								voicelist[0].append([index, 'note', note, 0, ncounter])
+						else:
+							pass
+					except IndexError:
 						pass
 				else:
 					pass
@@ -1094,12 +1002,12 @@ def render(y):
 
 			# cursor
 			index = -1
-			for symbol in voice:
+			for symbol in mess:
 				index += 1
 				ret = '0'
 				dig = ['0','1','2','3','4','5','6','7','8','9']
 				if symbol.find('_') >= 0:
-					for i in voice[index+1:]:
+					for i in mess[index+1:]:
 						if i in dig:
 							if ret == '0':
 								ret = i
@@ -1118,24 +1026,60 @@ def render(y):
 
 			# split note (add split note)
 			index = -1
-			for symbol in voice:
+			for symbol in mess:
 				index += 1
 				if symbol.find('=') >= 0:
-					voicelist[0].append([index, 'split'])
+					voicelist[0].append([index, 'split', prevnote])
+				else:
+					pass
+
+
+			# repeats
+			index = -1
+			for symbol in mess:
+				index += 1
+				fnd = symbol.find('[')
+				if fnd == 0:
+					voicelist[0].append([index, 'bgn_rpt'])
+				else:
+					pass
+			index = -1
+			for symbol in mess:
+				index += 1
+				fnd = symbol.find(']')
+				if fnd == 0:
+					voicelist[0].append([index, 'end_rpt'])
+				else:
+					pass
+
+			# dashed barline
+			index = -1
+			for symbol in mess:
+				index += 1
+				fnd = symbol.find('|')
+				if fnd == 0:
+					voicelist[0].append([index, 'dashline'])
 				else:
 					pass
 
 		
 		# sort events by index
-		for voice in voicelist:
-			voice.sort()
+		for mess in voicelist:
+			mess.sort()
 
 
-		## creating note messages with begin and length using all messages ##
-		voices = []
-		
+
+
+
+
+
+
+
+
+
+
+		## creating messages for note, barlines, and split with correct begin times ##
 		for voice in voicelist:
-			_voice = []
 			
 			#default values for every new voice
 			hand = 'UP'
@@ -1169,53 +1113,137 @@ def render(y):
 
 				if event[1] == 'note':
 					if event[3] == 1:
-						voices.append(['note', event[2], cursor, cursor+duration, hand, 'bound'])
+						msg.append([event[0], 'note', cursor, cursor+duration, event[2], hand, 'bound'])
 					else:
-						voices.append(['note', event[2], cursor, cursor+duration, hand, 'loose'])
+						msg.append([event[0], 'note', cursor, cursor+duration, event[2], hand, 'loose'])
 					cursor += duration
 				else:
 					pass
 
 				if event[1] == 'split':
-					note = voices[-1][1]
-					voices.append(['split', note, cursor, cursor+duration, 'dummy', 'dummy'])
+					note = msg[-1][4]
+					msg.append([event[0], 'split', cursor, cursor+duration, note])
 					cursor += duration
 				else:
 					pass
+
+				if event[1] == 'dashline':
+					msg.append([event[0], 'dashline', cursor])
+				else:
+					pass
+
+				if event[1] == 'bgn_rpt':
+					msg.append([event[0], 'bgn_rpt', cursor])
+				else:
+					pass
+
+				if event[1] == 'end_rpt':
+					msg.append([event[0], 'end_rpt', cursor])
+				else:
+					pass
+
+
+		#adding barline messages with correct begin time
+		for barline in barline_pos_list(grid):
+			msg.insert(0, ['index', 'barline', barline])
+
+
+		# adding grid messages
+		icount = -1
+		cursor = 0
+		grdpart = []
+		for i in grid:
+			oldpos = 0
+			for add in range(i[3]):
+				length = i[1]
+				divide = i[2]
+				if divide == 0:
+					divide = 1
+				amount = i[2]
+				for line in range(amount):
+					gridpart = length / divide
+					time = cursor + (gridpart * (line+1))
+					grdpart.append(['dashline', time])
+				cursor += length
+
+		for barline in grdpart:
+			msg.insert(0, ['index', 'dash', barline[1]])
+
+
+		# sort on starttime of event to get the barlines in the right order
+		msg.sort(key=lambda x: x[2])
+
+		
+		##  placing messages in lists of 'lines' ##
+		newlinepos = newline_pos_list(grid, mpline)
+		mem = 0
+		msgs = msg
+		msg = []
+		bottpos = 0
+		for newln in newlinepos:
+			hlplst = []
+			for note in msgs:
+				if note[2] >= bottpos and note[2] < newln:
+					hlplst.append(note)
+			msg.append(hlplst)
+			bottpos = newln
 		
 
-		voices = page_list(grid, mpline, voices, printareaheight)
+		## fitting the 'lines' into pages ##
+		lineheight = []
+		for line in msg:
 
-		# creating a measure list organized in page and lines of music
-		def measure_loop_list():
-			barlinepos = barline_pos_list(grid)
-			newlinepos = newline_pos_list(grid, mpline)
-		
-		measurelines = measure_loop_list()
-		
-		return
-
-	readFile()
-
-	### print file data in console:
-	print('\nRender:', '\nTitle = ', title, '\nSubtitle = ', subtitle, '\nComposer = ', 
-		composer, '\nCopyright = ', copyright, '\nGrid = ', grid, '\nNotes = \n')
-
-	for page in voices:
-		print(f'page {len(page)}:', page)
-		for line in page:
-			print('line: ', line)
+			notelst = []
 			for note in line:
-				pass#print(note)
+				if note[1] == 'note':
+					notelst.append(note[4])
+				else:
+					pass
+			try: lineheight.append(staff_height(min(notelst), max(notelst)))
+			except ValueError: lineheight.append(10)
+
+		msgs = msg
+		msg = []
+		cursy = 40 * (scale_S)
+		pagelist = []
+		icount = 0
+		for line, height in zip(msgs, lineheight):
+			icount += 1
+			cursy += height + systemspacing
+			if icount == len(lineheight):#if this is the last iteration
+				if cursy <= printareaheight:
+					pagelist.append(line)
+					msg.append(pagelist)
+					break
+				elif cursy > printareaheight:
+					msg.append(pagelist)
+					pagelist = []
+					pagelist.append(line)
+					msg.append(pagelist)
+					break
+				else:
+					pass
+			else:
+				if cursy <= printareaheight:#does fit on paper
+					pagelist.append(line)
+				elif cursy > printareaheight:#does not fit on paper
+					msg.append(pagelist)
+					pagelist = []
+					pagelist.append(line)
+					cursy = 0
+					cursy += height + systemspacing
+				else:
+					pass
 
 
 
+		## calculation of empty y space on every page
+		# 
+		print(pagespace)
 
+	reading()
 
-
-		
-
-
+	
 
 
 
@@ -1225,52 +1253,29 @@ def render(y):
 
 	def drawing():
 		canvas.delete('all')
-		
-		
+
 		def paper():
 
 			counter = 0
 			page_y = 0
 			
-			for page in voices:
+			for page in msg:
 				counter += 1
 				draw_paper(page_y)
-				canvas.create_text(80, page_y+80+printareaheight, text=f'page {counter} | {title} by {composer} | {copyright} - PianoScript®', anchor='w')
-				canvas.create_rectangle(70, page_y+70+printareaheight, 70+printareawidth, page_y+90+printareaheight)
+				canvas.create_text(80, page_y+20+paperheigth, text=f'page {counter} of {len(msg)} | {title} | {copyright} - PianoScript sheet', anchor='w', font=("Terminal", 16, "normal"))
+				#canvas.create_rectangle(70, page_y+5+paperheigth, 70+printareawidth, page_y+35+paperheigth)
 
 				page_y += paperheigth + 50
-			
-		paper()
 
-
-		def barlines():
-			barlines = []
-			mem = 0
-			for g in grid:
-
-				for i in range(g[3]):
-					barlines.append(['barline', mem, g[2]])
-					mem += g[1]
-			barlines = [barlines[n:n+mpline] for n in range(0, len(barlines), mpline)]
-			print(barlines)
-
-
-
-
-
-
-
-
-
+			canvas.create_text(70, 90, text=title, anchor='w', font=("Terminal", 20, "normal"))
+			canvas.create_text(70+printareawidth, 90, text=composer, anchor='e', font=("Courier", 20, "normal"))
+			#canvas.create_line(10, 400, 10, 400+pagespace[0])
 		
-
-
-		def active_note():
-			
-			cursy = 90
+		def note_active():
+			cursy = 90 + titlespace
 			lcounter = 0
 			pcounter = 0
-			for page in voices:
+			for page in msg:
 				pcounter += 1
 				
 				for line in page:
@@ -1278,37 +1283,97 @@ def render(y):
 					#create linenotelist
 					linenotelist = []
 					for note in line:
-						linenotelist.append(note[1])
+						if note[1] == 'note':
+							linenotelist.append(note[4])
 					if linenotelist:
 						minnote = min(linenotelist)
 						maxnote = max(linenotelist)
 					else:
-						minnote = 0
-						maxnote = 0
+						minnote = 40
+						maxnote = 44
 
 					for note in line:
-						note_on(note[2], note[3], note_y_pos(note[1], minnote, maxnote, cursy), lcounter)
+						if note[1] == 'note':
+							note_on(note[2], note[3], note_y_pos(note[4], minnote, maxnote, cursy), lcounter)
+							prevnote = note[3]
+						if note[1] == 'split':
+							note_on(note[2], note[3], note_y_pos(note[4], minnote, maxnote, cursy), lcounter)
 
 					cursy += staff_height(minnote, maxnote) + systemspacing
 
 				cursy = (paperheigth+50) * pcounter + 90
 
 
+		def barlines():
+			cursy = 90 + titlespace
+			pcounter = 0
+			lcounter = 0
+			bcounter = 0
+			
+			for page in msg:
+				pcounter += 1
+				
+				
+				for line in page:
+					lcounter += 1
+					
+					#create linenotelist
+					linenotelist = []
+					for note in line:
+						if note[1] == 'note'  or note[1] == 'split':
+							linenotelist.append(note[4])
+					if linenotelist:
+						maxnote = max(linenotelist)
+						minnote = min(linenotelist)
+					else:
+						maxnote = 44
+						minnote = 40
+
+					staffheight = staff_height(minnote, maxnote)
+
+					for note in line:
+		
+						if note[1] == 'barline':
+							bcounter += 1
+							canvas.create_line(event_x_pos(note[2], lcounter), cursy, event_x_pos(note[2], lcounter), cursy+staffheight, width=2)
+							canvas.create_text(event_x_pos(note[2]+7.5, lcounter), cursy-20, text=bcounter, anchor='w')
+
+						if note[1] == 'bgn_rpt':
+							canvas.create_line(event_x_pos(note[2], lcounter), cursy-30, event_x_pos(note[2], lcounter), cursy+staffheight+20, width=4)
+							canvas.create_line(event_x_pos(note[2], lcounter), cursy-30, event_x_pos(note[2], lcounter)+10, cursy-30, width=4)
+							canvas.create_line(event_x_pos(note[2], lcounter), cursy+staffheight+20, event_x_pos(note[2], lcounter)+10, cursy+staffheight+20, width=4)
+
+						if note[1] == 'end_rpt':
+							canvas.create_line(event_x_pos(note[2], lcounter), cursy-30, event_x_pos(note[2], lcounter), cursy+staffheight+20, width=4)
+							canvas.create_line(event_x_pos(note[2], lcounter), cursy-30, event_x_pos(note[2], lcounter)-10, cursy-30, width=4)
+							canvas.create_line(event_x_pos(note[2], lcounter), cursy+staffheight+20, event_x_pos(note[2], lcounter)-10, cursy+staffheight+20, width=4)
+
+					canvas.create_line(70+printareawidth, cursy, 70+printareawidth, cursy+staffheight, width=2)
+					
+					if lcounter == len(newline_pos_list(grid, mpline)):
+						canvas.create_line(70+printareawidth, cursy, 70+printareawidth, cursy+staffheight, width=5)
+					
+					
+					cursy += staffheight + systemspacing
+
+				cursy = (paperheigth+50) * pcounter + 90
+
 
 		def staff():
-
-			cursy = 90
+			cursy = 90 + titlespace
 			pcounter = 0
-			for page in voices:
+			lcounter = 0
+			for page in msg:
 				pcounter += 1
-				lcounter = 0
+				
 				
 				for line in page:
 					lcounter += 1
 					#create linenotelist
 					linenotelist = []
 					for note in line:
-						linenotelist.append(note[1])
+						if note[1] == 'note' or note[1] == 'split':
+							linenotelist.append(note[4])
 					if linenotelist:
 						maxnote = max(linenotelist)
 						minnote = min(linenotelist)
@@ -1319,142 +1384,230 @@ def render(y):
 					draw_staff_lines(cursy, minnote, maxnote)
 					#canvas.create_text(25, cursy+5, text=lcounter)
 					staffheight = staff_height(minnote, maxnote)
+					
 					cursy += staffheight + systemspacing
 
 				cursy = (paperheigth+50) * pcounter + 90
 
 
-		def notes():
+		def note_start():
 			black = [2, 5, 6, 10, 12, 14, 17, 19, 22, 24, 26, 29, 31, 34, 36, 38, 41, 43, 46, 48, 50, 53, 55, 58, 60, 62, 65, 67, 70, 72, 74, 77, 79, 82, 84, 86]
 			white_dga = [6,11,13,18,23,25,30,35,37,42,47,49,54,59,61,66,71,73,78,83,85,88]
 			white_be = [3,8,15,20,27,32,39,44,51,56,63,68,75,80,87] # possible typos
 			white_cf = [1,4,9,16,21,28,33,40,45,52,57,64,69,76,81] # possible typos
 			
-			cursy = 90
-			lcounter = 0
+			cursy = 90 + titlespace
 			pcounter = 0
-			for page in voices:
+			lcounter = 0
+			for page in msg:
 				pcounter += 1
-				
+
 				for line in page:
 					lcounter += 1
-					#create linenotelist
+
+
+					# create max/min note variables for line
 					linenotelist = []
 					for note in line:
-						linenotelist.append(note[1])
+						if note[1] == 'note':
+							linenotelist.append(note[4])
 					if linenotelist:
 						minnote = min(linenotelist)
 						maxnote = max(linenotelist)
+					else:
+						minnote = 40
+						maxnote = 44
+					
+					staffheight = staff_height(minnote, maxnote)
 
+
+
+					notelst = []
+					for note in line:
+						if note[1] == 'note':
+							notelst.append(note)
+
+					notelst.sort(key=lambda x: x[0])
 
 
 					old_x = 0
 					old_y = 0
 					boundloose = 0
 
-					for note in line:
-						
-						if note[1] in white_dga:
+					for note in notelst:
+
+						if note[1] == 'note':
+
+							if note[4] in white_dga:
 							
-							if note[4] == 'R':
-								white_key_right_dga(event_x_pos(note[2], lcounter), note_y_pos(note[1], minnote, maxnote, cursy))
-							elif note[4] == 'L':
-								white_key_left_dga(event_x_pos(note[2], lcounter), note_y_pos(note[1], minnote, maxnote, cursy))
-							# elif note[0] == 'split':
-							# 	print('!!!')
+								if note[5] == 'R':
+									white_key_right_dga(event_x_pos(note[2], lcounter), note_y_pos(note[4], minnote, maxnote, cursy))
+								elif note[5] == 'L':
+									white_key_left_dga(event_x_pos(note[2], lcounter), note_y_pos(note[4], minnote, maxnote, cursy))
+								# elif note[0] == 'split':
+								# 	print('!!!')
+								else:
+									pass
+
+							if note[4] in white_cf:
+								
+								if note[5] == 'R':
+									white_key_right_cefb(event_x_pos(note[2], lcounter), note_y_pos(note[4], minnote, maxnote, cursy))
+								elif note[5] == 'L':
+									white_key_left_cefb(event_x_pos(note[2], lcounter), note_y_pos(note[4], minnote, maxnote, cursy))
+								# elif note[0] == 'split':
+								# 	print('!!!')
+								else:
+									pass
+
+							if note[4] in white_be:
+								
+								if note[5] == 'R':
+									white_key_right_cefb(event_x_pos(note[2], lcounter), note_y_pos(note[4], minnote, maxnote, cursy)+1.5)
+								elif note[5] == 'L':
+									white_key_left_cefb(event_x_pos(note[2], lcounter), note_y_pos(note[4], minnote, maxnote, cursy)+1.5)
+								# elif note[0] == 'split':
+								# 	print('!!!')
+								else:
+									pass
+
+							if note[4] in black:
+								
+								if note[5] == 'R':
+									black_key_right(event_x_pos(note[2], lcounter), note_y_pos(note[4], minnote, maxnote, cursy))
+								elif note[5] == 'L':
+									black_key_left(event_x_pos(note[2], lcounter), note_y_pos(note[4], minnote, maxnote, cursy))
+								else:
+									pass
+
+							
+							if boundloose == 1:
+								if note[5] == 'R':
+									canvas.create_line(old_x, old_y, event_x_pos(note[2], lcounter), note_y_pos(note[4], minnote, maxnote, cursy)-20, width=3)
+								elif note[5] == 'L':
+									canvas.create_line(old_x, old_y, event_x_pos(note[2], lcounter), note_y_pos(note[4], minnote, maxnote, cursy)+20, width=3)
+
+							if note[6] == 'bound':
+								boundloose = 1
+								old_x = event_x_pos(note[2], lcounter)
+								if note[5] == 'R':
+									old_y = note_y_pos(note[4], minnote, maxnote, cursy)-20
+								elif note[5] == 'L':
+									old_y = note_y_pos(note[4], minnote, maxnote, cursy)+20
+								else:
+									pass
+							elif note[6] == 'loose':
+								boundloose = 0
 							else:
 								pass
 
-						if note[1] in white_cf:
-							
-							if note[4] == 'R':
-								white_key_right_cefb(event_x_pos(note[2], lcounter), note_y_pos(note[1], minnote, maxnote, cursy))
-							elif note[4] == 'L':
-								white_key_left_cefb(event_x_pos(note[2], lcounter), note_y_pos(note[1], minnote, maxnote, cursy))
-							# elif note[0] == 'split':
-							# 	print('!!!')
-							else:
-								pass
-
-						if note[1] in white_be:
-							
-							if note[4] == 'R':
-								white_key_right_cefb(event_x_pos(note[2], lcounter), note_y_pos(note[1], minnote, maxnote, cursy)+1.5)
-							elif note[4] == 'L':
-								white_key_left_cefb(event_x_pos(note[2], lcounter), note_y_pos(note[1], minnote, maxnote, cursy)+1.5)
-							# elif note[0] == 'split':
-							# 	print('!!!')
-							else:
-								pass
-
-						if note[1] in black:
-							
-							if note[4] == 'R':
-								black_key_right(event_x_pos(note[2], lcounter), note_y_pos(note[1], minnote, maxnote, cursy))
-							elif note[4] == 'L':
-								black_key_left(event_x_pos(note[2], lcounter), note_y_pos(note[1], minnote, maxnote, cursy))
-							else:
-								pass
-
-						
-						if boundloose == 1:
-							canvas.create_line(old_x, old_y, event_x_pos(note[2], lcounter), note_y_pos(note[1], minnote, maxnote, cursy)-20, width=3)
-
-						if note[5] == 'bound':
-							boundloose = 1
-							old_x = event_x_pos(note[2], lcounter)
-							old_y = note_y_pos(note[1], minnote, maxnote, cursy)-20
-						elif note[5] == 'loose':
-							boundloose = 0
-						else:
-							pass
 
 
-						
-
-					cursy += staff_height(minnote, maxnote) + systemspacing
+					cursy += staffheight + systemspacing
 
 				cursy = (paperheigth+50) * pcounter + 90
 
-		# drawing order:
-		# grid()
-		active_note()
+
+		def grid_lines():
+			cursy = 90 + titlespace
+			pcounter = 0
+			lcounter = 0
+			for page in msg:
+				pcounter += 1
+
+				for line in page:
+					lcounter += 1
+
+					# create max/min note variables for line
+					linenotelist = []
+					for note in line:
+						if note[1] == 'note':
+							linenotelist.append(note[4])
+					if linenotelist:
+						minnote = min(linenotelist)
+						maxnote = max(linenotelist)
+					else:
+						minnote = 40
+						maxnote = 44
+					
+					staffheight = staff_height(minnote, maxnote)
+
+					for gridline in line:
+						if gridline[1] == 'dash':
+							canvas.create_line(event_x_pos(gridline[2], 
+												lcounter), 
+												cursy+(staffheight*0.25), 
+												event_x_pos(gridline[2], 
+												lcounter), 
+												cursy+staffheight-(staffheight*0.25), 
+												dash=(6, 6))
+
+					cursy += staffheight + systemspacing
+
+				cursy = (paperheigth+50) * pcounter + 90
+
+
+		# function order
+		paper()
+		note_active()
 		barlines()
 		staff()
-		notes()
-
-
+		grid_lines()
+		note_start()
 
 	drawing()
 	canvas.configure(scrollregion=bbox_offset(canvas.bbox("all")))
+	return len(msg)
+
+
+
+
+
+
+
+
 
 def exportPDF():
-	canvas.postscript(file="~/Desktop/export.ps", colormode='gray', x=50, y=50, width=paperwidth, height=paperheigth, rotate=False)
+	print('exportPDF')
 
-menu.add_command(label ="export", command=exportPDF)
+	f = filedialog.asksaveasfile(mode='w', parent=root, filetypes=[("Postscript","*.ps")])
 
+	if f:
+		name = f.name[:-3]
+		counter = 0
 
-	
+		for export in range(render('q')):
+			counter += 1
+			print('printing page ', counter, '!')
+			canvas.postscript(file=f"{name} p {counter}.ps", colormode='gray', x=50, y=50+(export*(paperheigth+50)), width=paperwidth, height=paperheigth, rotate=False)
+			os.remove(f.name)
 
+	else:
 
+		pass
 
+	return
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+menu.add_command(label ="export postscript...", command=exportPDF)
 
 
-root.bind('<Key>', fileChange)
-root.bind('<Key>', render)
+def autosave(q):
+	global filepath
+	if filepath == 'New':
+		render('q')
+	else:
+		saveFile()
+		render('q')
+
+
+
+
+
+
+
+
+
 newFile()
+#exportPDF()
+root.bind('<Key>', autosave)
 root.mainloop()
