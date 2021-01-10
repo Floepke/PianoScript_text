@@ -1,0 +1,23 @@
+// header
+title=Goldberg variatie
+composer=J.S. Bach
+copyright=copyrights reserved
+mpline=2
+mgrid=6
+
+// time mapping
+grid.H+Q.4.12
+
+{R
+_1 <Q>g5 g5 <T>a5- g5 <E>a5- <S>b5
+_2 <E>a5 <S>g5 F5 <E>e5 <E+Q>d5
+_3 <S/3>a5-g5-F5- <S+E>g5 <T>a5-g5-F5-g5 a5-g5-a5-g5 a5-g5-a5-g5<S>F5-g5
+_4 <T>a5-g5-<S>F5 <T>g5-F5-<S>e5 e5-d5
+}
+
+{L
+_1 <H+Q>g3 _ <Q>r <H>b3 _ <Q>r d4
+_2 <H+Q>F3 _ <Q>r <H>a3 _ <Q>r d4
+_3 <H+Q>e3 _ <Q>r <H>g3 _ <Q>r C4
+}
+
