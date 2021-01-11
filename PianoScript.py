@@ -1,5 +1,5 @@
 ### IMPORTS ###
-from tkinter import Tk, Text, PanedWindow, Canvas, Scrollbar, Menu, filedialog, END, messagebox, simpledialog
+from tkinter import Tk, Text, PanedWindow, Canvas, Scrollbar, Menu, filedialog, END, messagebox, simpledialog, EventType
 import platform, subprocess, os
 
 ### GUI ###
@@ -32,30 +32,47 @@ hbar = Scrollbar(canvas, orient='horizontal', width=20)
 hbar.pack(side='bottom', fill='x')
 hbar.config(command=canvas.xview)
 canvas.configure(xscrollcommand=hbar.set)
+
 # if platform.system() == 'Darwin':
 # 	root.bind('<Control-,>', lambda event: canvas.yview('scroll', -1, 'units'))
 # 	root.bind('<Control-.>', lambda event: canvas.yview('scroll', 1, 'units'))
 # if platform.system() == 'Linux':
 #     root.bind('<4>', lambda event: canvas.yview('scroll', -1, 'units'))
 #     root.bind('<5>', lambda event: canvas.yview('scroll', 1, 'units'))
-#linux zoom
+
+# linux zoom
 def bbox_offset(bbox):
 		x1, y1, x2, y2 = bbox
 		return (x1-40, y1-40, x2+40, y2+40)
+def scrollD(event):
+	canvas.yview('scroll', int(event.y/200), 'units')
+	#canvas.configure(scrollregion=bbox_offset(canvas.bbox("all")))
+def scrollU(event):
+	canvas.yview('scroll', -abs(int(event.y/200)), 'units')
+	#canvas.configure(scrollregion=bbox_offset(canvas.bbox("all")))
 def zoomerP(event):
 	canvas.scale("all", event.x, event.y, 1.1, 1.1)
 	canvas.configure(scrollregion=bbox_offset(canvas.bbox("all")))
 def zoomerM(event):
 	canvas.scale("all", event.x, event.y, 0.9, 0.9)
 	canvas.configure(scrollregion=bbox_offset(canvas.bbox("all")))
+canvas.bind("<5>", scrollD)
+canvas.bind("<4>", scrollU)
 canvas.bind("<1>", zoomerP)
 canvas.bind("<3>", zoomerM)
+# def do_zoom(event):
+#     print('!!')
+#     factor = 1.001 ** event.delta
+#     canvas.scale('all', event.x, event.y, factor, factor)
+#     canvas.configure(scrollregion=bbox_offset(canvas.bbox("all")))
+# canvas.bind('<3>', lambda event: canvas.scan_mark(event.x, event.y))
+# canvas.bind("<B3-Motion>", lambda event: canvas.scan_dragto(event.x, event.y, gain=1))
 # # Text
 textw = Text(rightpanel, foreground='white', background='black', insertbackground='white')
 textw.place(relwidth=1, relheight=1)
 textw.focus_set()
-fontsize = 16
-textw.configure(font=f'courier {fontsize} ')
+fontsize = 14
+textw.configure(font=('Mono', 14))
 # Rightclick menu
 def do_popup(event): 
     try: 
@@ -145,7 +162,7 @@ def saveQuest():
 
 	else:
 		
-		pass
+		return 0
 
 	return
 
@@ -166,7 +183,7 @@ def newFile():
 	filechange = False
 	filepath = 'New'
 	textw.delete('1.0', END)
-	textw.insert('1.0', open('empty.pianoscript', 'r').read()) # For test purposes
+	#textw.insert('1.0', open('Goldberg.pnoscript', 'r').read()) # For test purposes
 	render('q')
 	root.title(f'PianoScript - {filepath}')
 	
@@ -186,7 +203,7 @@ def openFile():
 
 		pass
 
-	f = filedialog.askopenfile(parent=root, mode='rb', title='Open')
+	f = filedialog.askopenfile(parent=root, mode='rb', title='Open', filetypes=[("PianoScript files","*.pnoscript")])
 	
 	if f:
 
@@ -236,7 +253,7 @@ def saveAs():
 
 	global filepath, filechange
 
-	f = filedialog.asksaveasfile(mode='w', parent=root)
+	f = filedialog.asksaveasfile(mode='w', parent=root, filetypes=[("PianoScript files","*.pnoscript")])
 
 	if f:
 
@@ -257,10 +274,8 @@ def saveAs():
 
 def quitEditor():
 	print('quitEditor')
-	
-	global filechange
 
-	if filechange == True:
+	if filepath == 'New':
 
 		saveQuest()
 
@@ -283,8 +298,7 @@ def fileChecker():# checks if save file is valid and raises error if not.
 menu.add_separator()
 menu.add_command(label ="New", command=newFile)
 menu.add_command(label ="Open", command=openFile)
-menu.add_command(label ="Save", command=saveFile)
-menu.add_command(label ="Save as", command=saveAs)
+menu.add_command(label ="Save...", command=saveAs)
 menu.add_separator()
 menu.add_command(label ="Quit", command=quitEditor)
 
@@ -748,6 +762,15 @@ def special_string_change_tool(string, startbracket, endbracket):
                     string = replacer(string, "*", rindex)
     return string
 
+
+def repeat_dot(x, y):  # center coordinates, radius
+    x0 = x
+    y0 = y - 5
+    x1 = x + 5
+    y1 = y + 5
+    canvas.create_oval(x0, y0, x1, y1, outline='black', fill='black')
+
+
 ##########################################################################
 ## Main 			 													##
 ##########################################################################
@@ -776,8 +799,9 @@ copyright = ''
 # settings:
 mpline = 4
 systemspacing = 50
-scale = 100
+scale = 150
 titlespace = 60
+fillpage = 250
 # music:
 grid = []
 msg = []
@@ -794,13 +818,22 @@ printareaheight = paperheigth - marginsy
 
 
 def render(q):
-	global title, subtitle, composer, copyright, mpline, systemspacing, scale, grid, msg, paperheigth, paperwidth, marginsy, marginsx, printareaheight, printareawidth
+	global fillpage, pagespace, title, subtitle, composer, copyright, mpline, systemspacing, scale, grid, msg, paperheigth, paperwidth, marginsy, marginsx, printareaheight, printareawidth
 	grid = []
 	msg = []
+	title = ''
+	subtitle = ''
+	composer = ''
+	copyright = ''
+	pagespace = []
+	mpline = 4
+	systemspacing = 50
+	scale = 150
+	titlespace = 60
 	
 
 	def reading():
-		global scale_S, title, subtitle, composer, copyright, mpline, systemspacing, scale, grid, msg, paperheigth, paperwidth, marginsy, marginsx, printareaheight, printareawidth
+		global fillpage, scale_S, title, subtitle, composer, copyright, mpline, systemspacing, scale, grid, msg, paperheigth, paperwidth, marginsy, marginsx, printareaheight, printareawidth
 		file = strip_file(getFile())
 
 		# set titles if in file
@@ -813,65 +846,89 @@ def render(q):
 				pass
 
 			if 'subtitle' in i:
-				index = i.find('=')+1
-				i = i[index:]
-				subtitle = i
+				try:
+					index = i.find('=')+1
+					i = i[index:]
+					subtitle = i
+				except ValueError:
+					pass
 			else:
 				pass
 
 			if 'composer' in i:
-				index = i.find('=')+1
-				i = i[index:]
-				composer = i
+				try:
+					index = i.find('=')+1
+					i = i[index:]
+					composer = i
+				except ValueError:
+					pass
 			else:
 				pass
 
 			if 'copyright' in i:
-				index = i.find('=')+1
-				i = i[index:]
-				copyright = i
+				try:
+					index = i.find('=')+1
+					i = i[index:]
+					copyright = i
+				except ValueError:
+					pass
 			else:
 				pass
 
 			if 'mpline' in i:
-				index = i.find('=')+1
-				i = i[index:]
-				mpline = int(i)
+				try:
+					index = i.find('=')+1
+					i = i[index:]
+					mpline = int(i)
+				except ValueError:
+					pass
 			else:
 				pass
 
 			if 'mgrid' in i:
-				index = i.find('=')+1
-				i = i[index:]
-				mgrid = int(i)
+				try:
+					index = i.find('=')+1
+					i = i[index:]
+					mgrid = int(i)
+				except ValueError:
+					pass
 			else:
 				pass
 
 			if 'systemspace' in i:
-				index = i.find('=')+1
-				i = i[index:]
-				systemspacing = int(i)
+				try:
+					index = i.find('=')+1
+					i = i[index:]
+					systemspacing = int(i)
+				except ValueError:
+					pass
 			else:
 				pass
 
 			if 'scale' in i:
-				index = i.find('=')+1
-				i = i[index:]
-				scale = int(i)
-				scale_S = scale/100
-				paperheigth = root.winfo_fpixels('1m') * 297 * (scale_S)  # a4 210x297 mm
-				paperwidth = root.winfo_fpixels('1m') * 210 * (scale_S)
-				printareawidth = paperwidth - marginsx
-				printareaheight = paperheigth - marginsy
+				try:
+					index = i.find('=')+1
+					i = i[index:]
+					scale = int(i)
+					scale_S = scale/100
+					paperheigth = root.winfo_fpixels('1m') * 297 * (scale_S)  # a4 210x297 mm
+					paperwidth = root.winfo_fpixels('1m') * 210 * (scale_S)
+					printareawidth = paperwidth - marginsx
+					printareaheight = paperheigth - marginsy
+				except ValueError:
+					pass
 			else:
 				pass
 
 			if 'grid' in i:
-				i = i.split('.')
-				i[1] = durationConverter(i[1])
-				i[2] = eval(i[2])
-				i[3] = eval(i[3])
-				grid.append(i)
+				try:
+					i = i.split('.')
+					i[1] = durationConverter(i[1])
+					i[2] = eval(i[2])
+					i[3] = eval(i[3])
+					grid.append(i)
+				except:
+					pass
 			else:
 				pass
 
@@ -1056,9 +1113,9 @@ def render(q):
 			index = -1
 			for symbol in mess:
 				index += 1
-				fnd = symbol.find('|')
+				fnd = symbol.find(';')
 				if fnd == 0:
-					voicelist[0].append([index, 'dashline'])
+					voicelist[0].append([index, 'smalldash'])
 				else:
 					pass
 
@@ -1102,7 +1159,8 @@ def render(q):
 					if event[2] == 0:
 						cursor -= duration
 					else:
-						cursor = barline_pos_list(grid)[event[2]-1]
+						try: cursor = barline_pos_list(grid)[event[2]-1]
+						except IndexError: print('ERROR: cursor could not be changed')
 				else:
 					pass
 
@@ -1121,14 +1179,18 @@ def render(q):
 					pass
 
 				if event[1] == 'split':
-					note = msg[-1][4]
+					for i in reversed(msg):
+						if i[1] == 'note':
+							note = i[4]
+							break
+					#note = msg[-1][4]
 					msg.append([event[0], 'split', cursor, cursor+duration, note])
 					cursor += duration
 				else:
 					pass
 
-				if event[1] == 'dashline':
-					msg.append([event[0], 'dashline', cursor])
+				if event[1] == 'smalldash':
+					msg.append([event[0], 'smalldash', cursor])
 				else:
 					pass
 
@@ -1138,7 +1200,7 @@ def render(q):
 					pass
 
 				if event[1] == 'end_rpt':
-					msg.append([event[0], 'end_rpt', cursor])
+					msg.append([event[0], 'end_rpt', cursor-1])
 				else:
 					pass
 
@@ -1207,6 +1269,7 @@ def render(q):
 		cursy = 40 * (scale_S)
 		pagelist = []
 		icount = 0
+		resspace = 0
 		for line, height in zip(msgs, lineheight):
 			icount += 1
 			cursy += height + systemspacing
@@ -1214,37 +1277,40 @@ def render(q):
 				if cursy <= printareaheight:
 					pagelist.append(line)
 					msg.append(pagelist)
+					resspace = printareaheight - cursy
+					pagespace.append(resspace)
 					break
 				elif cursy > printareaheight:
+					print('?')
 					msg.append(pagelist)
 					pagelist = []
 					pagelist.append(line)
 					msg.append(pagelist)
+					pagespace.append(resspace)
+					cursy = 0
+					resspace = printareaheight - cursy
+					pagespace.append(resspace)
 					break
 				else:
 					pass
 			else:
 				if cursy <= printareaheight:#does fit on paper
 					pagelist.append(line)
+					resspace = printareaheight - cursy
 				elif cursy > printareaheight:#does not fit on paper
 					msg.append(pagelist)
 					pagelist = []
 					pagelist.append(line)
 					cursy = 0
 					cursy += height + systemspacing
+					pagespace.append(resspace)
 				else:
 					pass
 
-
-
 		## calculation of empty y space on every page
 		# 
-		print(pagespace)
 
 	reading()
-
-	
-
 
 
 
@@ -1269,7 +1335,7 @@ def render(q):
 
 			canvas.create_text(70, 90, text=title, anchor='w', font=("Terminal", 20, "normal"))
 			canvas.create_text(70+printareawidth, 90, text=composer, anchor='e', font=("Courier", 20, "normal"))
-			#canvas.create_line(10, 400, 10, 400+pagespace[0])
+			#canvas.create_line(10, 400, 10, 400+pagespace[1])
 		
 		def note_active():
 			cursy = 90 + titlespace
@@ -1277,7 +1343,7 @@ def render(q):
 			pcounter = 0
 			for page in msg:
 				pcounter += 1
-				
+				print(pcounter)
 				for line in page:
 					lcounter += 1
 					#create linenotelist
@@ -1291,15 +1357,22 @@ def render(q):
 					else:
 						minnote = 40
 						maxnote = 44
+					staffheight = staff_height(minnote, maxnote)
 
 					for note in line:
 						if note[1] == 'note':
 							note_on(note[2], note[3], note_y_pos(note[4], minnote, maxnote, cursy), lcounter)
 							prevnote = note[3]
 						if note[1] == 'split':
-							note_on(note[2], note[3], note_y_pos(note[4], minnote, maxnote, cursy), lcounter)
+							note_on(note[2]-5, note[3], note_y_pos(note[4], minnote, maxnote, cursy), lcounter)
 
-					cursy += staff_height(minnote, maxnote) + systemspacing
+					if len(page) == 1:
+						cursy += staffheight + systemspacing + (pagespace[pcounter-1] / (len(page)))
+					elif pagespace[pcounter-1] < fillpage:
+						cursy += staffheight + systemspacing + (pagespace[pcounter-1] / (len(page)-1))
+					elif pagespace[pcounter-1] >= fillpage:
+
+						cursy += staffheight + systemspacing
 
 				cursy = (paperheigth+50) * pcounter + 90
 
@@ -1336,17 +1409,25 @@ def render(q):
 						if note[1] == 'barline':
 							bcounter += 1
 							canvas.create_line(event_x_pos(note[2], lcounter), cursy, event_x_pos(note[2], lcounter), cursy+staffheight, width=2)
-							canvas.create_text(event_x_pos(note[2]+7.5, lcounter), cursy-20, text=bcounter, anchor='w')
+							canvas.create_text(event_x_pos(note[2]+12.5, lcounter), cursy-20, text=bcounter, anchor='w', font=('Terminal', 14, 'normal'))
 
 						if note[1] == 'bgn_rpt':
 							canvas.create_line(event_x_pos(note[2], lcounter), cursy-30, event_x_pos(note[2], lcounter), cursy+staffheight+20, width=4)
 							canvas.create_line(event_x_pos(note[2], lcounter), cursy-30, event_x_pos(note[2], lcounter)+10, cursy-30, width=4)
 							canvas.create_line(event_x_pos(note[2], lcounter), cursy+staffheight+20, event_x_pos(note[2], lcounter)+10, cursy+staffheight+20, width=4)
+							repeat_dot(event_x_pos(note[2], lcounter)+22.5, cursy-30)
+							repeat_dot(event_x_pos(note[2], lcounter)+32.5, cursy-30)
+							repeat_dot(event_x_pos(note[2], lcounter)+22.5, cursy+staffheight+20)
+							repeat_dot(event_x_pos(note[2], lcounter)+32.5, cursy+staffheight+20)
 
 						if note[1] == 'end_rpt':
 							canvas.create_line(event_x_pos(note[2], lcounter), cursy-30, event_x_pos(note[2], lcounter), cursy+staffheight+20, width=4)
 							canvas.create_line(event_x_pos(note[2], lcounter), cursy-30, event_x_pos(note[2], lcounter)-10, cursy-30, width=4)
 							canvas.create_line(event_x_pos(note[2], lcounter), cursy+staffheight+20, event_x_pos(note[2], lcounter)-10, cursy+staffheight+20, width=4)
+							repeat_dot(event_x_pos(note[2], lcounter)-22.5, cursy+staffheight+20)
+							repeat_dot(event_x_pos(note[2], lcounter)-32.5, cursy+staffheight+20)
+							repeat_dot(event_x_pos(note[2], lcounter)-22.5, cursy-30)
+							repeat_dot(event_x_pos(note[2], lcounter)-32.5, cursy-30)
 
 					canvas.create_line(70+printareawidth, cursy, 70+printareawidth, cursy+staffheight, width=2)
 					
@@ -1354,7 +1435,12 @@ def render(q):
 						canvas.create_line(70+printareawidth, cursy, 70+printareawidth, cursy+staffheight, width=5)
 					
 					
-					cursy += staffheight + systemspacing
+					if len(page) == 1:
+						cursy += staffheight + systemspacing + (pagespace[pcounter-1] / (len(page)))
+					elif pagespace[pcounter-1] < fillpage:
+						cursy += staffheight + systemspacing + (pagespace[pcounter-1] / (len(page)-1))
+					elif pagespace[pcounter-1] >= fillpage:
+						cursy += staffheight + systemspacing
 
 				cursy = (paperheigth+50) * pcounter + 90
 
@@ -1385,7 +1471,12 @@ def render(q):
 					#canvas.create_text(25, cursy+5, text=lcounter)
 					staffheight = staff_height(minnote, maxnote)
 					
-					cursy += staffheight + systemspacing
+					if len(page) == 1:
+						cursy += staffheight + systemspacing + (pagespace[pcounter-1] / (len(page)))
+					elif pagespace[pcounter-1] < fillpage:
+						cursy += staffheight + systemspacing + (pagespace[pcounter-1] / (len(page)-1))
+					elif pagespace[pcounter-1] >= fillpage:
+						cursy += staffheight + systemspacing
 
 				cursy = (paperheigth+50) * pcounter + 90
 
@@ -1444,8 +1535,6 @@ def render(q):
 									white_key_right_dga(event_x_pos(note[2], lcounter), note_y_pos(note[4], minnote, maxnote, cursy))
 								elif note[5] == 'L':
 									white_key_left_dga(event_x_pos(note[2], lcounter), note_y_pos(note[4], minnote, maxnote, cursy))
-								# elif note[0] == 'split':
-								# 	print('!!!')
 								else:
 									pass
 
@@ -1455,8 +1544,6 @@ def render(q):
 									white_key_right_cefb(event_x_pos(note[2], lcounter), note_y_pos(note[4], minnote, maxnote, cursy))
 								elif note[5] == 'L':
 									white_key_left_cefb(event_x_pos(note[2], lcounter), note_y_pos(note[4], minnote, maxnote, cursy))
-								# elif note[0] == 'split':
-								# 	print('!!!')
 								else:
 									pass
 
@@ -1466,8 +1553,6 @@ def render(q):
 									white_key_right_cefb(event_x_pos(note[2], lcounter), note_y_pos(note[4], minnote, maxnote, cursy)+1.5)
 								elif note[5] == 'L':
 									white_key_left_cefb(event_x_pos(note[2], lcounter), note_y_pos(note[4], minnote, maxnote, cursy)+1.5)
-								# elif note[0] == 'split':
-								# 	print('!!!')
 								else:
 									pass
 
@@ -1503,7 +1588,12 @@ def render(q):
 
 
 
-					cursy += staffheight + systemspacing
+					if len(page) == 1:
+						cursy += staffheight + systemspacing + (pagespace[pcounter-1] / (len(page)))
+					elif pagespace[pcounter-1] < fillpage:
+						cursy += staffheight + systemspacing + (pagespace[pcounter-1] / (len(page)-1))
+					elif pagespace[pcounter-1] >= fillpage:
+						cursy += staffheight + systemspacing
 
 				cursy = (paperheigth+50) * pcounter + 90
 
@@ -1536,13 +1626,26 @@ def render(q):
 						if gridline[1] == 'dash':
 							canvas.create_line(event_x_pos(gridline[2], 
 												lcounter), 
-												cursy+(staffheight*0.25), 
+												cursy, 
 												event_x_pos(gridline[2], 
 												lcounter), 
-												cursy+staffheight-(staffheight*0.25), 
+												cursy+staffheight, 
+												dash=(6, 6))
+						if gridline[1] == 'smalldash':
+							canvas.create_line(event_x_pos(gridline[2], 
+												lcounter), 
+												cursy+(staffheight*0.20), 
+												event_x_pos(gridline[2], 
+												lcounter), 
+												cursy+staffheight-(staffheight*0.20), 
 												dash=(6, 6))
 
-					cursy += staffheight + systemspacing
+					if len(page) == 1:
+						cursy += staffheight + systemspacing + (pagespace[pcounter-1] / (len(page)))
+					elif pagespace[pcounter-1] < fillpage:
+						cursy += staffheight + systemspacing + (pagespace[pcounter-1] / (len(page)-1))
+					elif pagespace[pcounter-1] >= fillpage:
+						cursy += staffheight + systemspacing
 
 				cursy = (paperheigth+50) * pcounter + 90
 
@@ -1578,9 +1681,10 @@ def exportPDF():
 
 		for export in range(render('q')):
 			counter += 1
-			print('printing page ', counter, '!')
-			canvas.postscript(file=f"{name} p {counter}.ps", colormode='gray', x=50, y=50+(export*(paperheigth+50)), width=paperwidth, height=paperheigth, rotate=False)
-			os.remove(f.name)
+			print('printing page ', counter)
+			canvas.postscript(file=f"{name} p{counter}.ps", colormode='gray', x=50, y=50+(export*(paperheigth+50)), width=paperwidth, height=paperheigth, rotate=False)
+		
+		os.remove(f.name)
 
 	else:
 
