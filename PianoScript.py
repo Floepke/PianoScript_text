@@ -1,5 +1,5 @@
 ### IMPORTS ###
-from tkinter import Tk, Text, PanedWindow, Canvas, Scrollbar, Menu, filedialog, END, messagebox, simpledialog, EventType
+from tkinter import PhotoImage, Tk, Text, PanedWindow, Canvas, Scrollbar, Menu, filedialog, END, messagebox, simpledialog, EventType
 import platform, subprocess, os
 
 ### GUI ###
@@ -9,20 +9,21 @@ root.title('PianoScript')
 scrwidth = root.winfo_screenwidth()
 scrheight = root.winfo_screenheight()
 root.geometry(f"{int(scrwidth / 1.5)}x{int(scrheight / 1.25)}+{int(scrwidth / 6)}+{int(scrheight / 12)}")
+root.iconphoto(False, PhotoImage(file = '/home/floepie/MEGAprogram/PianoScript/pscript.png'))
 # PanedWindow
-paned = PanedWindow(root, relief='sunken', sashwidth=15, sashcursor='arrow')
+paned = PanedWindow(root, relief='flat', sashwidth=20, sashcursor='arrow', orient='horizontal')
 paned.pack(fill='both', expand=1)
 # Left Panel
-leftpanel = PanedWindow(paned, relief='raised', width=900)
+leftpanel = PanedWindow(paned, relief='flat')
 paned.add(leftpanel)
 # Right Panel
 rightpanel = PanedWindow(paned,
-                            orient='vertical',
                             sashwidth=15,
-                            sashcursor='arrow')
+                            sashcursor='arrow',
+                            relief='flat')
 paned.add(rightpanel)
 # Canvas
-canvas = Canvas(leftpanel, bg='grey')
+canvas = Canvas(leftpanel, bg='grey', relief='flat')
 canvas.place(relwidth=1, relheight=1)
 vbar = Scrollbar(canvas, orient='vertical', width=20)
 vbar.pack(side='right', fill='y')
@@ -68,24 +69,15 @@ canvas.bind("<3>", zoomerM)
 # canvas.bind('<3>', lambda event: canvas.scan_mark(event.x, event.y))
 # canvas.bind("<B3-Motion>", lambda event: canvas.scan_dragto(event.x, event.y, gain=1))
 # # Text
-textw = Text(rightpanel, foreground='white', background='black', insertbackground='white')
+textw = Text(rightpanel, foreground='white', background='grey', insertbackground='red')
 textw.place(relwidth=1, relheight=1)
 textw.focus_set()
 fontsize = 14
-textw.configure(font=('Mono', 14))
-# Rightclick menu
-def do_popup(event): 
-    try: 
-        menu.tk_popup(event.x_root, event.y_root)
-    finally: 
-        menu.grab_release()
-menu = Menu(root, tearoff = 0, background='black', foreground='white',
-               activebackground='white', activeforeground='black') 
-menu.add_command(label ="[x] close menu")
-if platform.system() == 'Linux':
-    textw.bind("<Button-3>", do_popup)
-if platform.system() == 'Darwin':
-    textw.bind("<Button-2>", do_popup)
+textw.configure(font=('Terminal', 14))
+# Menu
+menu = Menu(root, tearoff = 0, background='grey', foreground='white',
+               activebackground='grey', activeforeground='blue', relief='flat')
+root.config(menu=menu)
 
 
 
@@ -183,7 +175,28 @@ def newFile():
 	filechange = False
 	filepath = 'New'
 	textw.delete('1.0', END)
-	#textw.insert('1.0', open('Goldberg.pnoscript', 'r').read()) # For test purposes
+	textw.insert('1.0', '''// header
+title=New
+composer=PianoScript
+copyright=copyrights reserved 2021
+
+// settings
+mpline=5
+scale=150
+systemspace=70
+
+// time mapping
+grid.<W>.4.32
+
+
+{
+// M1-6 //
+R
+
+
+L
+
+}''', 'r')
 	render('q')
 	root.title(f'PianoScript - {filepath}')
 	
@@ -298,9 +311,9 @@ def fileChecker():# checks if save file is valid and raises error if not.
 menu.add_separator()
 menu.add_command(label ="New", command=newFile)
 menu.add_command(label ="Open", command=openFile)
-menu.add_command(label ="Save...", command=saveAs)
+menu.add_command(label ="Save", command=saveAs)
 menu.add_separator()
-menu.add_command(label ="Quit", command=quitEditor)
+
 
 
 
@@ -840,7 +853,7 @@ def render(q):
 		for i in file.split('\n'):
 			if 'title' in i:
 				index = i.find('=')+1
-				i = i[index:]
+				i = i[index:]#
 				title = i
 			else:
 				pass
@@ -1097,7 +1110,7 @@ def render(q):
 				index += 1
 				fnd = symbol.find('[')
 				if fnd == 0:
-					voicelist[0].append([index, 'bgn_rpt'])
+					voicelist[0].append([index, 'bgn_sect'])
 				else:
 					pass
 			index = -1
@@ -1105,11 +1118,21 @@ def render(q):
 				index += 1
 				fnd = symbol.find(']')
 				if fnd == 0:
-					voicelist[0].append([index, 'end_rpt'])
+					voicelist[0].append([index, 'end_sect'])
 				else:
 					pass
 
 			# dashed barline
+			index = -1
+			for symbol in mess:
+				index += 1
+				fnd = symbol.find(';')
+				if fnd == 0:
+					voicelist[0].append([index, 'smalldash'])
+				else:
+					pass
+
+			# repeatVolta
 			index = -1
 			for symbol in mess:
 				index += 1
@@ -1194,13 +1217,13 @@ def render(q):
 				else:
 					pass
 
-				if event[1] == 'bgn_rpt':
-					msg.append([event[0], 'bgn_rpt', cursor])
+				if event[1] == 'bgn_sect':
+					msg.append([event[0], 'bgn_sect', cursor])
 				else:
 					pass
 
-				if event[1] == 'end_rpt':
-					msg.append([event[0], 'end_rpt', cursor-1])
+				if event[1] == 'end_sect':
+					msg.append([event[0], 'end_sect', cursor-1])
 				else:
 					pass
 
@@ -1328,12 +1351,12 @@ def render(q):
 			for page in msg:
 				counter += 1
 				draw_paper(page_y)
-				canvas.create_text(80, page_y+20+paperheigth, text=f'page {counter} of {len(msg)} | {title} | {copyright} - PianoScript sheet', anchor='w', font=("Terminal", 16, "normal"))
+				canvas.create_text(80, page_y+20+paperheigth, text=f'page {counter} of {len(msg)} | {title} | {copyright} - PianoScript sheet', anchor='w', font=("Courier", 16, "normal"))
 				#canvas.create_rectangle(70, page_y+5+paperheigth, 70+printareawidth, page_y+35+paperheigth)
 
 				page_y += paperheigth + 50
 
-			canvas.create_text(70, 90, text=title, anchor='w', font=("Terminal", 20, "normal"))
+			canvas.create_text(70, 90, text=title, anchor='w', font=("Courier", 20, "normal"))
 			canvas.create_text(70+printareawidth, 90, text=composer, anchor='e', font=("Courier", 20, "normal"))
 			#canvas.create_line(10, 400, 10, 400+pagespace[1])
 		
@@ -1411,24 +1434,18 @@ def render(q):
 							canvas.create_line(event_x_pos(note[2], lcounter), cursy, event_x_pos(note[2], lcounter), cursy+staffheight, width=2)
 							canvas.create_text(event_x_pos(note[2]+12.5, lcounter), cursy-20, text=bcounter, anchor='w', font=('Terminal', 14, 'normal'))
 
-						if note[1] == 'bgn_rpt':
-							canvas.create_line(event_x_pos(note[2], lcounter), cursy-30, event_x_pos(note[2], lcounter), cursy+staffheight+20, width=4)
-							canvas.create_line(event_x_pos(note[2], lcounter), cursy-30, event_x_pos(note[2], lcounter)+10, cursy-30, width=4)
-							canvas.create_line(event_x_pos(note[2], lcounter), cursy+staffheight+20, event_x_pos(note[2], lcounter)+10, cursy+staffheight+20, width=4)
-							repeat_dot(event_x_pos(note[2], lcounter)+22.5, cursy-30)
-							repeat_dot(event_x_pos(note[2], lcounter)+32.5, cursy-30)
-							repeat_dot(event_x_pos(note[2], lcounter)+22.5, cursy+staffheight+20)
-							repeat_dot(event_x_pos(note[2], lcounter)+32.5, cursy+staffheight+20)
+						if note[1] == 'bgn_sect':
+							canvas.create_line(event_x_pos(note[2], lcounter), cursy, event_x_pos(note[2], lcounter), cursy+staffheight+35, width=2)
+							canvas.create_line(event_x_pos(note[2], lcounter), cursy+staffheight+35, event_x_pos(note[2], lcounter)+40, cursy+staffheight+35, width=2)
+							#repeat_dot(event_x_pos(note[2], lcounter)+7.5, cursy+staffheight+20)
+							#repeat_dot(event_x_pos(note[2], lcounter)+17.5, cursy+staffheight+20)
 
-						if note[1] == 'end_rpt':
-							canvas.create_line(event_x_pos(note[2], lcounter), cursy-30, event_x_pos(note[2], lcounter), cursy+staffheight+20, width=4)
-							canvas.create_line(event_x_pos(note[2], lcounter), cursy-30, event_x_pos(note[2], lcounter)-10, cursy-30, width=4)
-							canvas.create_line(event_x_pos(note[2], lcounter), cursy+staffheight+20, event_x_pos(note[2], lcounter)-10, cursy+staffheight+20, width=4)
-							repeat_dot(event_x_pos(note[2], lcounter)-22.5, cursy+staffheight+20)
-							repeat_dot(event_x_pos(note[2], lcounter)-32.5, cursy+staffheight+20)
-							repeat_dot(event_x_pos(note[2], lcounter)-22.5, cursy-30)
-							repeat_dot(event_x_pos(note[2], lcounter)-32.5, cursy-30)
-
+						if note[1] == 'end_sect':
+							canvas.create_line(event_x_pos(note[2], lcounter), cursy, event_x_pos(note[2], lcounter), cursy+staffheight+35, width=2)
+							canvas.create_line(event_x_pos(note[2], lcounter), cursy+staffheight+35, event_x_pos(note[2], lcounter)-40, cursy+staffheight+35, width=2)
+							#repeat_dot(event_x_pos(note[2], lcounter)-12.5, cursy+staffheight+20)
+							#repeat_dot(event_x_pos(note[2], lcounter)-22.5, cursy+staffheight+20)
+							
 					canvas.create_line(70+printareawidth, cursy, 70+printareawidth, cursy+staffheight, width=2)
 					
 					if lcounter == len(newline_pos_list(grid, mpline)):
@@ -1482,7 +1499,7 @@ def render(q):
 
 
 		def note_start():
-			black = [2, 5, 6, 10, 12, 14, 17, 19, 22, 24, 26, 29, 31, 34, 36, 38, 41, 43, 46, 48, 50, 53, 55, 58, 60, 62, 65, 67, 70, 72, 74, 77, 79, 82, 84, 86]
+			black = [2, 5, 7, 10, 12, 14, 17, 19, 22, 24, 26, 29, 31, 34, 36, 38, 41, 43, 46, 48, 50, 53, 55, 58, 60, 62, 65, 67, 70, 72, 74, 77, 79, 82, 84, 86]
 			white_dga = [6,11,13,18,23,25,30,35,37,42,47,49,54,59,61,66,71,73,78,83,85,88]
 			white_be = [3,8,15,20,27,32,39,44,51,56,63,68,75,80,87] # possible typos
 			white_cf = [1,4,9,16,21,28,33,40,45,52,57,64,69,76,81] # possible typos
@@ -1670,8 +1687,8 @@ def render(q):
 
 
 
-def exportPDF():
-	print('exportPDF')
+def exportPS():
+	print('exportPS')
 
 	f = filedialog.asksaveasfile(mode='w', parent=root, filetypes=[("Postscript","*.ps")])
 
@@ -1692,8 +1709,6 @@ def exportPDF():
 
 	return
 
-menu.add_command(label ="export postscript...", command=exportPDF)
-
 
 def autosave(q):
 	global filepath
@@ -1704,10 +1719,50 @@ def autosave(q):
 		render('q')
 
 
+def exportPDF():
+	print('exportPDF')
+
+	f = filedialog.asksaveasfile(mode='w', parent=root, filetypes=[("pdf file","*.pdf")], initialfile=title)
+
+	if f:
+		counter = -1
+
+		convertlist = []
+		for export in range(render('q')):
+			counter += 1
+			print('printing page ', counter)
+			canvas.postscript(file=f"tmp{export}.ps", x=40, y=50+(export*(paperheigth+50)), width=paperwidth, height=paperheigth, rotate=False)
+			process = subprocess.Popen(["ps2pdfwr", "-sPAPERSIZE=a4", "-dFIXEDMEDIA", "-dEPSFitPage", f"tmp{export}.ps"])
+			process.wait()
+			os.remove(f'tmp{export}.ps')
+			convertlist.append(f'tmp{export}.pdf')
+		
+		cl = 'pdfunite '
+		for i in convertlist:
+			cl += i + ' '
+		cl += f'"{f.name}"'
+
+		for bind in range(counter):
+			process = subprocess.Popen(cl, shell=True)
+			process.wait()
+
+		for x in convertlist:
+			os.remove(x)
+
+		return
+
+	else:
+
+		pass
+
+	return
 
 
-
-
+exportmenu = Menu(menu, tearoff=0)
+menu.add_cascade(label='Export', menu=exportmenu)
+exportmenu.add_command(label ="export *.ps", command=exportPS)
+exportmenu.add_command(label ="export *.pdf", command=exportPDF)
+menu.add_command(label ="Quit", command=quitEditor)
 
 
 
