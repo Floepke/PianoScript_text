@@ -1,4 +1,0 @@
-My TODO for PianoScript:
-. fileChecker
-. drawing paper and different instances of the same paper
-. bug when saving a 'new' file.
