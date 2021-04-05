@@ -1,6 +1,10 @@
 ### IMPORTS ###
 from tkinter import PhotoImage, Tk, Text, PanedWindow, Canvas, Scrollbar, Menu, filedialog, END, messagebox, simpledialog, EventType, colorchooser, Label, Button, INSERT
+import tkinter.ttk as ttk
 import platform, subprocess, os, datetime, sys, threading, rtmidi, math
+if platform.system() == 'Linux':
+	from tkfilebrowser import askopenfilename, asksaveasfilename
+
 
 ### GUI ###
 #colors
@@ -16,6 +20,7 @@ def choose_midi_color():
 # Root
 root = Tk()
 root.title('PianoScript')
+ttk.Style(root).theme_use("alt")
 scrwidth = root.winfo_screenwidth()
 scrheight = root.winfo_screenheight()
 root.geometry(f"{int(scrwidth / 1.5)}x{int(scrheight / 1.25)}+{int(scrwidth / 6)}+{int(scrheight / 12)}")
@@ -28,13 +33,13 @@ uppanel = PanedWindow(panedmaster, height=10000, relief='flat', bg=_bg)
 panedmaster.add(uppanel)
 downpanel = PanedWindow(panedmaster, relief='flat', bg=_bg)
 panedmaster.add(downpanel)
-	# editor pane
+    # editor pane
 paned = PanedWindow(uppanel, relief='flat', sashwidth=20, sashcursor='arrow', orient='h', bg=_bg)
 uppanel.add(paned)
-		# Left Panel
+        # Left Panel
 leftpanel = PanedWindow(paned, relief='flat', width=1350, bg=_bg)
 paned.add(leftpanel)
-		# Right Panel
+        # Right Panel
 rightpanel = PanedWindow(paned, sashwidth=15, sashcursor='arrow', relief='flat', bg=_bg)
 paned.add(rightpanel)
 # Canvas --> leftpanel
@@ -77,7 +82,7 @@ if platform.system() == 'Darwin':
         canvas.yview_scroll(-1*(event.delta), "units")
     canvas.bind("<MouseWheel>", _on_mousewheel)
 # text --> rightpanel
-textw = Text(rightpanel, foreground='black', background=_bg, insertbackground='red')
+textw = Text(rightpanel, foreground='black', background=_bg, insertbackground='red', undo=True, maxundo=100, autoseparators=True)
 textw.place(relwidth=1, relheight=1)
 textw.focus_set()
 fontsize = 16
@@ -180,7 +185,7 @@ def new_file():
     textw.insert('1.0', starttemplate, 'r')
     root.title('PianoScript - New')
     filepath = 'New'
-    render('q', papercolor)
+    render('normal', papercolor)
     return
 
 
@@ -188,20 +193,39 @@ def open_file():
     print('open_file')
     global filepath
     save_quest()
-    f = filedialog.askopenfile(parent=root, mode='rb', title='Open', filetypes=[("PianoScript files","*.pnoscript")])
-    if f:
-        filepath = f.name
-        root.title(f'PianoScript - {filepath}')
-        textw.delete('1.0', END)
-        textw.insert('1.0', f.read())
-        render('q', papercolor)
-    return
+    if platform.system() == 'Linux':
+        f = askopenfilename(parent=root, title='Open', filetypes=[("PianoScript files","*.pnoscript")])
+        if f == '':
+            print('open_file; canceled')
+            return
+        else:
+            filepath = f
+            root.title(f'PianoScript - {f}')
+            f = open(f, 'r')
+            textw.delete('1.0', END)
+            textw.insert('1.0', f.read())
+            f.close()
+            render('normal', papercolor)
+        return
+    else:
+        f = filedialog.askopenfile(parent=root, mode='r', title='Open', filetypes=[("PianoScript files","*.pnoscript")])
+        if f:
+            filepath = f.name
+            root.title(f'PianoScript - {f.name}')
+            f = open(f.name, 'r')
+            textw.delete('1.0', END)
+            textw.insert('1.0', f.read())
+            f.close()
+            render('normal', papercolor)
+        return
 
 
 def save_file():
     print('save_file')
     if filepath == 'New':
-        save_as()
+        f = save_as()
+        if f == 0:
+            print('save_file; canceled')
         return
     else:
         f = open(filepath, 'w')
@@ -210,23 +234,41 @@ def save_file():
 
 
 def save_as():
-    global filepath
-    f = filedialog.asksaveasfile(mode='w', parent=root, filetypes=[("PianoScript files","*.pnoscript")])
-    if f:
-        f.write(get_file())
-        f.close()
-        filepath = f.name
-        root.title(f'PianoScript - {filepath}')
-    return
+	global filepath
+	if platform.system() == 'Linux':
+		f = asksaveasfilename(parent=root, filetypes=[("PianoScript files","*.pnoscript")], foldercreation=1)
+		if f == '':
+		    print('save_as; canceled')
+		    return
+		else:
+		    filepath = f
+		    root.title(f'PianoScript - {f}')
+		    f = open(f, 'w')
+		    f.write(get_file())
+		    f.close()
+		return
+	else:
+		f = filedialog.asksaveasfile(parent=root, mode='r', filetypes=[("PianoScript files","*.pnoscript")])
+		if f:
+		    filepath = f.name
+		    root.title(f'PianoScript - {f.name}')
+		    f = open(f, 'w')
+		    f.write(get_file())
+		    f.close()
+		    return
 
 
 def quit_editor():
     print('quit_editor')
+    global midiswitch
+    midiswitch = 0
     if filepath == 'New':
         save_quest()
     else:
         save_file()
     root.destroy()
+
+root.protocol("WM_DELETE_WINDOW", quit_editor)
 
 
 
@@ -675,7 +717,33 @@ def note_y_pos(note, mn, mx, cursy):
     return (cursy + c4) + (40 - note) * 5
 
 
-def draw_note_actives(x0, x1, y, linenr):
+def diff(x, y):
+    if x >= y:
+        return x - y
+    else:
+        return y - x
+
+
+def note_active_gradient(x0, x1, y, linenr):
+    '''draws a midi note with a stop sign(vertical line at the end of the midi-note).'''
+    x0 = event_x_pos(x0, linenr)
+    x1 = event_x_pos(x1, linenr)
+    width = diff(x0, x1)
+    (r1,g1,b1) = root.winfo_rgb('white')
+    (r2,g2,b2) = root.winfo_rgb(midinotecolor)
+    r_ratio = float(r2-r1) / width
+    g_ratio = float(g2-g1) / width
+    b_ratio = float(b2-b1) / width
+    for i in range(math.ceil(width)):
+        nr = int(r1 + (r_ratio * i))
+        ng = int(g1 + (g_ratio * i))
+        nb = int(b1 + (b_ratio * i))
+        color = "#%4.4x%4.4x%4.4x" % (nr,ng,nb)
+        canvas.create_line(x0+i,y-5,x0+i,y+5, fill=color)
+    canvas.create_line(x1, y-5, x1, y+5, width=2)
+
+
+def note_active_grey(x0, x1, y, linenr):
     '''draws a midi note with a stop sign(vertical line at the end of the midi-note).'''
     x0 = event_x_pos(x0, linenr)
     x1 = event_x_pos(x1, linenr)
@@ -764,13 +832,6 @@ def addmeas_processor(string):
     amount = string[2]
 
     return length, grid, amount
-
-
-def diff(x, y):
-    if x >= y:
-        return x - y
-    else:
-        return y - x
 
 
 def continuation_dot(x, y):
@@ -874,6 +935,7 @@ printcopyright = 1 # on/off
 measurenumbering = 1 # on/off
 dotts = 0 # on/off
 midirecord = 1
+midiswitch = 1
 #keywidth = 17.5
 # music:
 grid = []
@@ -904,7 +966,7 @@ number2pitch = {1: 'a0', 2: 'z0', 3: 'b0',
 renderno = 0
 
 
-def render(x, papercol='#fefffe'):
+def render(rendertype='normal', papercol=papercolor): # rendertype can be type 'normal' or 'export', papercol=papercolor
     global scale_S, renderno, pagespace, title, subtitle, composer, copyright, mpline, systemspacing, scale, grid, msg, paperheigth, paperwidth, marginsy, marginsx, printareaheight, printareawidth, printtitle, printcomposer, printcopyright, measurenumbering
     grid = []
     msg = []
@@ -1406,12 +1468,18 @@ def render(x, papercol='#fefffe'):
                     staffheight, minnote, maxnote = get_staff_height(line)
 
                     for note in line:
-                        if note[1] == 'note':
-                            draw_note_actives(note[2], note[3], note_y_pos(note[4], minnote, maxnote, cursy), lcounter)
-                            prevnote = note[3]
-                        if note[1] == 'split':
-                            draw_note_actives(note[2], note[3], note_y_pos(note[4], minnote, maxnote, cursy), lcounter)
-                            continuation_dot(event_x_pos(note[2], lcounter)+5, note_y_pos(note[4], minnote, maxnote, cursy))
+                        if rendertype == 'normal':
+                            if note[1] == 'note':
+                                note_active_grey(note[2], note[3], note_y_pos(note[4], minnote, maxnote, cursy), lcounter)
+                            if note[1] == 'split':
+                                note_active_grey(note[2], note[3], note_y_pos(note[4], minnote, maxnote, cursy), lcounter)
+                                continuation_dot(event_x_pos(note[2], lcounter)+5, note_y_pos(note[4], minnote, maxnote, cursy))
+                        elif rendertype == 'export':
+                            if note[1] == 'note':
+                                note_active_gradient(note[2], note[3], note_y_pos(note[4], minnote, maxnote, cursy), lcounter)
+                            if note[1] == 'split':
+                                note_active_gradient(note[2], note[3], note_y_pos(note[4], minnote, maxnote, cursy), lcounter)
+                                continuation_dot(event_x_pos(note[2], lcounter)+5, note_y_pos(note[4], minnote, maxnote, cursy))
 
                     if len(page) == 1:
                         cursy += staffheight + systemspacing + (pagespace[pcounter-1] / (len(page)))
@@ -1548,65 +1616,137 @@ def render(x, papercol='#fefffe'):
                     for note in notelst:
                         
                         if note[1] == 'note':
-                            #note_stop(event_x_pos(note[3], lcounter), note_y_pos(note[4], minnote, maxnote, cursy))
+
+                            notex = event_x_pos(note[2], lcounter)
+                            notey = note_y_pos(note[4], minnote, maxnote, cursy)
 
                             if note[4] in white_dga:
 
                                 if note[5] == 'R':
-                                    white_key_right_dga(event_x_pos(note[2], lcounter), note_y_pos(note[4], minnote, maxnote, cursy))
+                                    white_key_right_dga(notex, notey)
                                 elif note[5] == 'L':
-                                    white_key_left_dga(event_x_pos(note[2], lcounter), note_y_pos(note[4], minnote, maxnote, cursy))
+                                    white_key_left_dga(notex, notey)
                                 else:
                                     pass
+
+
 
                             if note[4] in white_cf:
 
                                 if note[5] == 'R':
-                                    white_key_right_cefb(event_x_pos(note[2], lcounter), note_y_pos(note[4], minnote, maxnote, cursy)-1.5)
+                                    white_key_right_cefb(notex, notey-1.5)
                                 elif note[5] == 'L':
-                                    white_key_left_cefb(event_x_pos(note[2], lcounter), note_y_pos(note[4], minnote, maxnote, cursy)-1.5)
+                                    white_key_left_cefb(notex, notey-1.5)
                                 else:
                                     pass
 
                             if note[4] in white_be:
 
                                 if note[5] == 'R':
-                                    white_key_right_cefb(event_x_pos(note[2], lcounter), note_y_pos(note[4], minnote, maxnote, cursy)+1.5)
+                                    white_key_right_cefb(notex, notey+1.5)
                                 elif note[5] == 'L':
-                                    white_key_left_cefb(event_x_pos(note[2], lcounter), note_y_pos(note[4], minnote, maxnote, cursy)+1.5)
+                                    white_key_left_cefb(notex, notey+1.5)
                                 else:
                                     pass
+
+                    # second for loop so the black keys are always on top of white (reversed racism)
+                    for note in notelst:
+                        
+                        if note[1] == 'note':
+
+                            notex = event_x_pos(note[2], lcounter)
+                            notey = note_y_pos(note[4], minnote, maxnote, cursy)
 
                             if note[4] in black:
 
 
                                 if note[5] == 'R':
-                                    black_key_right(event_x_pos(note[2], lcounter), note_y_pos(note[4], minnote, maxnote, cursy))
+                                    black_key_right(notex, notey)
                                 elif note[5] == 'L':
-                                    black_key_left(event_x_pos(note[2], lcounter), note_y_pos(note[4], minnote, maxnote, cursy))
+                                    black_key_left(notex, notey)
                                 else:
                                     pass
 
 
-                            if boundloose == 1:
-                                if note[5] == 'R':
-                                    canvas.create_line(old_x, old_y, event_x_pos(note[2], lcounter), note_y_pos(note[4], minnote, maxnote, cursy)-20, width=3)
-                                elif note[5] == 'L':
-                                    canvas.create_line(old_x, old_y, event_x_pos(note[2], lcounter), note_y_pos(note[4], minnote, maxnote, cursy)+20, width=3)
+                            # connect stems of the same hand if they start at the same time.
+                            for stem in notelst:
+                                if round(stem[2]) == round(note[2]) and note[5] == stem[5]:
+                                    currenty = notey
+                                    stemy = note_y_pos(stem[4], minnote, maxnote, cursy)
+                                    canvas.create_line(notex, currenty, notex, stemy, width=2)
 
-                            if note[6] == 'bound':
-                                boundloose = 1
-                                old_x = event_x_pos(note[2], lcounter)
-                                if note[5] == 'R':
-                                    old_y = note_y_pos(note[4], minnote, maxnote, cursy)-20
-                                elif note[5] == 'L':
-                                    old_y = note_y_pos(note[4], minnote, maxnote, cursy)+20
-                                else:
-                                    pass
-                            elif note[6] == 'loose':
-                                boundloose = 0
+
+
+                            #### This piece of code writes beams but is currently not part of the notation.
+                            # if boundloose == 1:
+                            #     if note[5] == 'R':
+                            #         canvas.create_line(old_x, old_y, notex, notey-20, width=3)
+                            #     elif note[5] == 'L':
+                            #         canvas.create_line(old_x, old_y, notex, notey+20, width=3)
+
+                            # if note[6] == 'bound':
+                            #     boundloose = 1
+                            #     old_x = event_x_pos(note[2], lcounter)
+                            #     if note[5] == 'R':
+                            #         old_y = note_y_pos(note[4], minnote, maxnote, cursy)-20
+                            #     elif note[5] == 'L':
+                            #         old_y = note_y_pos(note[4], minnote, maxnote, cursy)+20
+                            #     else:
+                            #         pass
+                            # elif note[6] == 'loose':
+                            #     boundloose = 0
+                            # else:
+                            #     pass
+
+                    if len(page) == 1:
+                        cursy += staffheight + systemspacing + (pagespace[pcounter-1] / (len(page)))
+                    elif pagespace[pcounter-1] < fillpage:
+                        cursy += staffheight + systemspacing + (pagespace[pcounter-1] / (len(page)-1))
+                    elif pagespace[pcounter-1] >= fillpage:
+                        cursy += staffheight + systemspacing
+
+                cursy = (paperheigth+50) * pcounter + 100
+
+
+        def draw_hand_split_whitespace():
+            '''
+            Draws a white line if the note is on a barline 
+            to make visible where the hand split point is.
+            '''
+            cursy = 90 + titlespace
+            pcounter = 0
+            lcounter = 0
+            for page in msg:
+                pcounter += 1
+
+                for line in page:
+                    lcounter += 1
+                    staffheight, minnote, maxnote = get_staff_height(line)
+
+                    notelst = []
+                    for note in line:
+                        if note[1] == 'note':
+                            notelst.append(note)
+
+                    notelst.sort(key=lambda x: x[0])
+
+                    for note in notelst:
+                        
+                        if note[1] == 'note':
+                            
+                            barlineposlist = barline_pos_list(grid)
+                            notex = event_x_pos(note[2], lcounter)
+                            notey = note_y_pos(note[4], minnote, maxnote, cursy)
+
+                            if note[5] == 'R':
+                                if note[2] in barlineposlist:
+                                    canvas.create_line(notex, notey, notex, notey+7.5, fill='white', width=2)
+                            elif note[5] == 'L':
+                                if note[2] in barlineposlist:
+                                    canvas.create_line(notex, notey, notex, notey-7.5, fill='white', width=2)
                             else:
                                 pass
+
 
                     if len(page) == 1:
                         cursy += staffheight + systemspacing + (pagespace[pcounter-1] / (len(page)))
@@ -1622,6 +1762,7 @@ def render(x, papercol='#fefffe'):
             cursy = 90 + titlespace
             pcounter = 0
             lcounter = 0
+            barlineposlist = barline_pos_list(grid)
             for page in msg:
                 pcounter += 1
 
@@ -1631,13 +1772,14 @@ def render(x, papercol='#fefffe'):
 
                     for gridline in line:
                         if gridline[1] == 'dash':
-                            canvas.create_line(event_x_pos(gridline[2],
-                                                lcounter),
-                                                cursy,
-                                                event_x_pos(gridline[2],
-                                                lcounter),
-                                                cursy+staffheight,
-                                                dash=(6, 6))
+                            if gridline[2] not in barlineposlist:
+                                canvas.create_line(event_x_pos(gridline[2],
+                                                    lcounter),
+                                                    cursy,
+                                                    event_x_pos(gridline[2],
+                                                    lcounter),
+                                                    cursy+staffheight,
+                                                    dash=(6, 6))
                         if gridline[1] == 'smalldash':
                             canvas.create_line(event_x_pos(gridline[2],
                                                 lcounter),
@@ -1736,15 +1878,26 @@ def render(x, papercol='#fefffe'):
         draw_paper()
         draw_note_active()
         draw_barlines_and_text()
+        draw_hand_split_whitespace()
         draw_staff()
         draw_grid_lines()
         draw_note_start()
         draw_slur()
-        draw_continuation_dot()
+        #draw_continuation_dot()
 
     drawing()
     canvas.configure(scrollregion=bbox_offset(canvas.bbox("all")))
     return len(msg)
+
+
+def autosave():
+    root.after(60000, autosave)
+    if filepath == 'New':
+        return
+    save_file()
+    
+def renderkey(q='q'):
+    render('normal', papercolor)
 
 
 
@@ -1764,18 +1917,19 @@ def render(x, papercol='#fefffe'):
 def exportPS():
     print('exportPS')
 
-    f = filedialog.asksaveasfile(mode='w', parent=root, filetypes=[("Postscript","*.ps")], initialfile=title)
+    f = filedialog.asksaveasfile(mode='w', parent=root, filetypes=[("Postscript","*.ps")], initialfile=title, initialdir='~/Desktop')
 
     if f:
         name = f.name[:-3]
         counter = 0
 
-        for export in range(render('q')):
+        for export in range(render('export')):
             counter += 1
             print('printing page ', counter)
             canvas.postscript(file=f"{name} p{counter}.ps", colormode='gray', x=40, y=50+(export*(paperheigth+50)), width=paperwidth, height=paperheigth, rotate=False)
 
         os.remove(f.name)
+        renderkey()
 
     else:
 
@@ -1791,7 +1945,7 @@ def exportPDF():
     print('exportPDF')
     f = filedialog.asksaveasfile(mode='w', parent=root, filetypes=[("pdf file","*.pdf")], initialfile=title, initialdir='~/Desktop')
     if f:
-        n = render('q', 'white')
+        n = render('export', 'white')
         pslist = []
         for rend in range(n):
             canvas.postscript(file=f"tmp{rend}.ps", x=40, y=50+(rend*(paperheigth+50)), width=paperwidth, height=paperheigth, rotate=False)
@@ -1807,25 +1961,25 @@ def exportPDF():
             process.wait()
         for x in pslist:
             os.remove(x)
+        renderkey()
         return
             
     else:
         return
 
-def autosave():
-    root.after(60000, autosave)
-    if filepath == 'New':
-        return
-    save_file()
-    
-def renderkey(q):
-    render('q', papercolor)
 
 
 
 
 
+
+
+
+
+#------------
 # MIDI input
+#------------
+
 midi_record_toggle = 0
 def midi_toggle(q='q'):
     global midi_record_toggle
@@ -1853,15 +2007,18 @@ def midi_input():
             self.device.openPort(self.port)
             self.device.ignoreTypes(True, False, True)
             while True:
-                if self.quit:
+                if midiswitch == 0:
                     return
                 msg = self.device.getMessage(2500)
                 if msg:
                     if msg.isNoteOn():
                         if midi_record_toggle == 1:
                             note = msg.getNoteNumber() - 20
-                            textw.insert(textw.index(INSERT), number2pitch[note])
-                            render('q', papercolor)
+                            if shiftkey == 0:
+                                textw.insert(textw.index(INSERT), number2pitch[note])
+                            elif shiftkey == 1:
+                                textw.insert(textw.index(INSERT), '_'+number2pitch[note])
+                            renderkey()
 
     dev = rtmidi.RtMidiIn()
     for i in range(dev.getPortCount()):
@@ -1869,11 +2026,6 @@ def midi_input():
         print('OPENING',dev.getPortName(i))
         collector = Collector(device, i)
         collector.start()
-
-    sys.stdin.read(1)
-    for c in collectors:
-        c.quit = True
-
 
 threading.Thread(target=midi_input).start()
 
@@ -1893,28 +2045,30 @@ threading.Thread(target=midi_input).start()
 #------------------
 '''This is the mouse click keyboard input. it draws a keyboard on a canvas
 widget and when hoovering it highlights the selected key. Left click
-will insert a note, rightclick will add to the chord(for writing chords)'''
+will insert a note on cursor position in the Text widget, while holding shift 
+will add to the current chord.'''
+
 keywidth = 17.5
+keylength = 80
 black = [2, 5, 7, 10, 12, 14, 17, 19, 22, 24, 26, 29, 31, 34, 36, 38, 41, 43, 46, 
             48, 50, 53, 55, 58, 60, 62, 65, 67, 70, 72, 74, 77, 79, 82, 84, 86]
-def draw_piano_keyboard(keylength=80, x=0, y=0):
+shiftkey = 0
+def draw_piano_keyboard(x=0, y=0):
     piano.delete('all')
     greykeys = [4, 6, 8, 9, 11, 13, 15, 28, 30, 32, 33, 35, 37, 39, 52, 54, 56, 57, 59, 61, 63,
             76, 78, 80, 81, 83, 85, 87]
 
     piano.create_rectangle(x,y,x+(keywidth*88),y+keylength, fill='white')
-
-    x0 = x
     piano.create_rectangle(x+(3*keywidth),y,x+(15*keywidth),y+keylength, fill='lightgrey', outline='')
     piano.create_rectangle(x+(27*keywidth),y,x+(39*keywidth),y+keylength, fill='lightgrey', outline='')
     piano.create_rectangle(x+(51*keywidth),y,x+(63*keywidth),y+keylength, fill='lightgrey', outline='')
     piano.create_rectangle(x+(75*keywidth),y,x+(87*keywidth),y+keylength, fill='lightgrey', outline='')
     
-    x = x0
+    x = 0
     for i in range(88):
         i += 1
         if i in black:
-            piano.create_rectangle(x,y,x+keywidth,y+60, width=2, fill='black', outline='')
+            piano.create_rectangle(x,y,x+keywidth,y+(keylength/3*2), width=2, fill='black', outline='')
             x += keywidth
         else:
             x += keywidth
@@ -1924,33 +2078,34 @@ draw_piano_keyboard()
 
 
 def mouse_note_input(event):
-    global chord
     note = math.floor(event.x / keywidth + 1)
+    if note in black:
+        piano.create_rectangle((note-1)*keywidth, 0, (note-1)*keywidth+keywidth, (keylength/3*2), fill='green', outline='')
+    else:
+        piano.create_rectangle((note-1)*keywidth, 0, (note-1)*keywidth+keywidth, keylength, fill='green', outline='')
+    print(event.num)
     if note <= 88:
-        if event.num == 1:
+        if shiftkey == 0:
             textw.insert(textw.index(INSERT), number2pitch[note])
-            render('q', papercolor)
+            renderkey()
             return
-        if event.num == 3:
+        elif shiftkey == 1:
             textw.insert(textw.index(INSERT), '_'+number2pitch[note])
-            render('q', papercolor)
-            chord = 1
+            renderkey()
             return
 
 
 def mouse_note_highlight(event):
-    global keywidth
-    keywidth = piano.winfo_width()/88
-    x = event.x
-    y = event.y
-    note = math.floor(x / keywidth)
-    if note <= 87:
-        draw_piano_keyboard()
-        if y > 10:
-            if note+1 in black:
-                piano.create_rectangle(note*keywidth, 0, note*keywidth+keywidth, 60, fill='#24a6d1', outline='')
-            else:
-                piano.create_rectangle(note*keywidth, 0, note*keywidth+keywidth, 80, fill='#24a6d1', outline='')
+    global keywidth, keylength
+    keywidth = piano.winfo_width() / 88
+    keylength = piano.winfo_height()
+    note = math.floor(event.x / keywidth)
+    draw_piano_keyboard()
+    if event.y > 10:
+        if note + 1 in black:
+            piano.create_rectangle(note*keywidth, 0, note*keywidth+keywidth, (keylength/3*2), fill='#24a6d1')
+        else:
+            piano.create_rectangle(note*keywidth, 0, note*keywidth+keywidth, keylength, fill='#24a6d1')
 
 
 
@@ -2022,13 +2177,28 @@ menubar.add_cascade(label="menu", underline=0, menu=fileMenu)
 
 
 
+def keypress(event):
+    renderkey()
+    global shiftkey
+    if event.keysym == 'Shift_L' or event.keysym == 'Shift_R':
+        shiftkey = 1
+    else:
+        return
+
+def keyrelease(event):
+    global shiftkey
+    if event.keysym == 'Shift_L' or event.keysym == 'Shift_R':
+        shiftkey = 0
+    else:
+        return
+
 
 new_file()
 autosave()
-root.bind('<Key>', renderkey)
 root.bind('<Escape>', midi_toggle)
 root.bind('<F11>', fullscreen)
+root.bind('<KeyPress>', keypress)
+root.bind('<KeyRelease>', keyrelease)
 piano.bind('<Button-1>', mouse_note_input)
-piano.bind('<Button-3>', mouse_note_input)
 piano.bind('<Motion>', mouse_note_highlight)
 root.mainloop()
