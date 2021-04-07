@@ -1,0 +1,106 @@
+// header
+~title{Goldberg Variations No. 1}
+~composer{J.S. Bach}
+~copyright{copyrights reserved}
+
+// score settings
+~mpline{4}
+~scale{150}
+~systemspace{100}
+
+// time mapping
+~meas{3/4 3 32}
+
+
+{
+// Part I
+~hand{R}
+_1 ~bar{|:}~text{ 3/4}Qg5 g5 Ta5 g5 Ea5 _Trr~bar{;}rr Sb5
+_2 Ea5 Sg5 F5 e5 ~dur{Q+E+S}d5
+_3 Tg4F4~dur{E+S}g4~bar{;}Ta4g4F4g4~bar{;}~dur{E/5}a4g4a4g4a4Eg4SF4g4
+_4 Ta4g4SF4 Tg4F4Se4 Ee4~dur{E+Q}d4
+
+_5 Qd5 d5 Te5d5 Ee5 Sf5
+_6 Ee5 Sd5c5 b4~dur{S+Q}a4 Tg5F5e5F5
+_7 Tg5 ~dur{3*T}F5 Ta5~dur{3*T}g5 TF5~dur{3*T}e5 Td5~dur{3*T}c5 Sc5Ea5Sc5__~bar{;}
+_8 Tb4~dur{3*T}g4EF4 F4 ~bar{;}Tg4F4~dur{S+Q}g4 _8 Er a3 Qb3
+
+_9 b4b4TC5b4SEC5S_~bar{;}Srd5
+_10 d5C5b4~dur{S+H}a4 _10 QrHd5
+_11 Qg5
+_11 ~dur{S/3}r~dur{S/3*2+E+S}e5
+_11 ~dur{S/3*2}r~dur{S/3+S+E}b4
+_11 Sr~dur{S+E}g4
+_11 Er~bar{;}r Ta5g5F5g5~bar{;} ~dur{E/5}a5g5a5g5a5Eg5SF5g5
+_12 Eg5SF5e5Ed5~dur{E/6}C5d5C5d5C5d5EC5e5
+
+_13 Sa5g5F5e5Ed5~dur{Q+T}a4Tb4Sc5__~bar{;}
+_14 b4a4g4F4Ee4Sd5~dur{E+S+T}C5Td5Se5__~bar{;}
+_15 d5C5b4a4Eg5Qb4EC5
+_16 SC5~dur{S+T}d5T_~bar{;}re5d5C5SC5~dur{Q+E+S}d5QE~bar{:|}
+
+~hand{L}
+_1 [~dur{H+Q}g3 _ Qr Hb3 _ Qr d4
+_2 ~dur{H+Q}F3 _ Qr Ha3 _ Qr d4
+_3 ~dur{H+Q}e3 _ Qr Hg3 _ Qr C4
+_4 ~dur{H+E}d3 Ec3 _4 Qr HF3 _4 Qrr a3
+
+_5 ~dur{H+Q}b2 _ Qr Hd3 _ Qr g3
+_6 ~dur{H+E}c3Ed3_6Qr~dur{Q+E}e3 _6 Qrr a3
+_7 Ee3 c3 H d3 _7 Er Qc4 Sb3a3 g3F3e3F3
+_8 ~dur{Q+E}g2 Ed3 Te3d3Ee3S F3 _8 Eg3rrrr~bar{;}
+
+_9 Qg3H=_Hb3_Qre4
+_10 Qa3~dur{E/5}F3g3F3g3F3~bar{;}Ee3F3b3
+_11 e3==e3F3g3 _11 Erb3e4==d4
+_12 Ea3==b3a3g3 _12 C4d4e4===
+
+_13 QF3H=_Ha3_Qrd4
+_14 Qg3H=_Qb3_Qre4
+_15 Ha3Q= _15 F4 ~dur{E+S}e4SF4Qg4
+_16 Hd3Q= _16 QrEra3d4=]
+
+
+// Part II
+~hand{R}
+_17 ~bar{|:}Ta4g4~dur{E+S}a4 Tb4a4g4a4~bar{;}b4a4b4~dur{S+T}a4Ta4b4~bar{;}c5d5Se5
+_18 e5d5c5b4Ea4Qg4Eg5
+_19 SF5Ee5TF5D5ED5Te5D5~dur{E+S}e5Ta5b5a5g5
+_20 ~dur{E+S}a5SF5Ee5QD5Eb4
+
+_21 Te5F5Eg5SF5EF5~dur{E+S}e5Sb4T~bar{;}c5b4a4b4
+_22 Tg5~dur{S+T}e5~bar{;}TF5~dur{S+T}D5ED5~dur{E+S}e5Sg4F4e4
+_23 ~dur{E*3}F4Ec5b4a4Q= _23 Srrre5e5D5TF5g5Sa5Eg5F5
+_24 QrHg4 _24 SF5Ee5TF5D5ED5~dur{E*3}e5
+
+_25 Ee5Sd5c5b4~dur{5*S}a4Sb4c5
+_26 Td5c5Sb4Tc5b4Sa4Ea4Qg4Sa4b4
+_27 c5d5c5b4 c5a4e4a4Qc5S=_______e4==b4a4g4
+_28 Srd5c5b4c5a4F4a4c5e5d5c5 _28 QF4Er~dur{E*3}F4
+
+_29 Sb4c5b4a4b4g4d4g4b4g4c5d5 _29 g4=rrrrd4==g4======
+_30 e5f5e5d5e5c5g4c5e5c5F5g5 _30 QrErSg4==c5==
+_31 a5c5b4a4b4c5d5g4b4a4g4F4
+_32 ~dur{Q+S}g4Sd4g4F4EF4g4 _32 Src4b3a3Hb3
+
+~hand{L}
+_17 Hd4Qc4 _17 Ere4TF4e4S~dur{Q+S+E}F4
+_18 ~dur{E*3}b3Ea3Qb3 _18 Erc4Hd4
+_19 ~dur{E*3}c4Eb3Qa3 _19 Ere4Qg4~dur{S/3}F4g4~dur{S/3+S}F4Ee4
+_20 ~dur{E*3}b3Ea3g3F3 _20 ED4e4HF4
+
+_21 He3Qd3 _21 Era3Tg3a3Sg3EF3Qg3
+_22 Hc3Qb2 _22 Era3Tg3a3Sg3EF3g3b3
+_23 Ea2~bar{;}c3b2a2b2=_D3
+_24 Qe3_Er~bar{;}b2e2b2e3d3
+
+_25 ~dur{H+Q}c3_QrHe3_Qra3E=
+_26 ~dur{H+Q}b2_ ErF3Se3d3e3F3g3F3Eg3=
+_27 ~dur{E*3}a2Eg2F2e2 _27 Ere3a3
+_28 d2a2d3c3b2a2
+
+_29 g2d3g3f3e3d3
+_30 c3g3c4b3a3g3
+_31 F3d3g3b3d4d3
+_32 ~dur{E*3}g3Ed3Qg2~bar{:|}
+}

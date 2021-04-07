@@ -1,0 +1,104 @@
+// titles:
+~title{Das Wholtemperierte Clavier -- preludium 1}
+~composer{J.S. Bach}
+~copyright{copyright}
+
+// settings:
+~mpline{6 5 4 8 6}
+~scale{150}
+~systemspace{90}
+
+// measure mapping:
+~meas{4/4 4 35}
+
+
+// music: //
+~hand{R}
+_1 Srrg4c5e5g4c5e5 rrg4c5e5g4c5e5
+_2 rra4d5f5a4d5f5 rra4d5f5a4d5f5
+_3 rrg4d5f5g4d5f5 rrg4d5f5g4d5f5
+_4 rrg4c5e5g4c5e5 rrg4c5e5g4c5e5
+
+_5 rra4e5a5a4e5a5 rra4e5a5a4e5a5
+_6 rrF4a4d5F4a4d5 rrF4a4d5F4a4d5
+_7 rrg4d5g5g4d5g5 rrg4d5g5g4d5g5
+_8 rre4g4c5e4g4c5 rre4g4c5e4g4c5
+
+_9 rre4g4c5e4g4c5 rre4g4c5e4g4c5
+_10 rrd4F4c5d4F4c5 rrd4F4c5d4F4c5
+_11 rrd4g4b4d4g4b4 rrd4g4b4d4g4b4
+_12 rre4g4C5e4g4C5 rre4g4C5e4g4C5
+
+_13 rrd4a4d5d4a4d5 rrd4a4d5d4a4d5
+_14 rrd4f4b4d4f4b4 rrd4f4b4d4f4b4
+_15 rrc4g4c5c4g4c5 rrc4g4c5c4g4c5
+_16 rra3c4f4a3c4f4 rra3c4f4a3c4f4
+
+_17 rra3c4f4a3c4f4 rra3c4f4a3c4f4
+_18 rrg3b3f4g3b3f4 rrg3b3f4g3b3f4
+_19 rrg3c4e4g3c4e4 rrg3c4e4g3c4e4
+_20 rrA3c4e4A3c4e4 rrA3c4e4A3c4e4
+
+_21 rra3c4e4a3c4e4 rra3c4e4a3c4e4
+_22 rra3c4D4a3c4D4 rra3c4D4a3c4D4
+_23 rrb3c4d4b3c4d4 rrb3c4d4b3c4d4
+_24 rrg3b3d4g3b3d4 rrg3b3d4g3b3d4
+
+_25 rrg3c4e4g3c4e4 rrg3c4e4g3c4e4
+_26 rrg3c4f4g3c4f4 rrg3c4f4g3c4f4
+_27 rrg3b3f4g3b3f4 rrg3b3f4g3b3f4
+_28 rra3c4F4a3c4F4 rra3c4F4a3c4F4
+
+_29 rrg3c4g4g3c4g4 rrg3c4g4g3c4g4
+_30 rrg3c4f4g3c4f4 rrg3c4f4g3c4f4
+_31 rrg3b3f4g3b3f4 rrg3b3f4g3b3f4
+_32 rrg3A3e4g3A3e4 rrg3A3e4g3A3e4
+
+_33 rrf3a3c4f4c4a3 c4a3f3a3f3d3f3d3
+_34 rrg4b4d5f5d5b4 d5b4g4b4d4f4e4d4
+_35 We4_g4_c5
+
+~hand{L}
+_1 Hc4c4 _1 Sr~dur{S*7}e4 Sr~dur{S*7}e4
+_2 Hc4c4 _2 Sr~dur{S*7}d4 Sr~dur{S*7}d4
+_3 Hb3b3 _3 Sr~dur{S*7}d4 Sr~dur{S*7}d4
+_4 Hc4c4 _4 Sr~dur{S*7}e4 Sr~dur{S*7}e4
+
+_5 Hc4c4 _5 Sr~dur{S*7}e4 Sr~dur{S*7}e4
+_6 Hc4c4 _6 Sr~dur{S*7}d4 Sr~dur{S*7}d4
+_7 Hb3b3 _7 Sr~dur{S*7}d4 Sr~dur{S*7}d4
+_8 Hb3b3 _8 Sr~dur{S*7}c4 Sr~dur{S*7}c4
+
+_9 Ha3a3 _9 Sr~dur{S*7}c4 Sr~dur{S*7}c4
+_10 Hd3d3 _10 Sr~dur{S*7}a3 Sr~dur{S*7}a3
+_11 Hg3g3 _11 Sr~dur{S*7}b3 Sr~dur{S*7}b3
+_12 Hg3g3 _12 Sr~dur{S*7}A3 Sr~dur{S*7}A3
+
+_13 Hf3f3 _13 Sr~dur{S*7}a3 Sr~dur{S*7}a3
+_14 Hf3f3 _14 Sr~dur{S*7}G3 Sr~dur{S*7}G3
+_15 He3e3 _15 Sr~dur{S*7}g3 Sr~dur{S*7}g3
+_16 He3e3 _16 Sr~dur{S*7}f3 Sr~dur{S*7}f3
+
+_17 Hd3d3 _17 Sr~dur{S*7}f3 Sr~dur{S*7}f3
+_18 Hg2g2 _18 Sr~dur{S*7}d3 Sr~dur{S*7}d3
+_19 Hc3c3 _19 Sr~dur{S*7}e3 Sr~dur{S*7}e3
+_20 Hc3c3 _20 Sr~dur{S*7}g3 Sr~dur{S*7}g3
+
+_21 Hf2f2 _21 Sr~dur{S*7}f3 Sr~dur{S*7}f3
+_22 HF2F2 _22 Sr~dur{S*7}c3 Sr~dur{S*7}c3
+_23 HG2G2 _23 Sr~dur{S*7}f3 Sr~dur{S*7}f3
+_24 Hg2g2 _24 Sr~dur{S*7}f3 Sr~dur{S*7}f3
+
+_25 Hg2g2 _25 Sr~dur{S*7}e3 Sr~dur{S*7}e3
+_26 Hg2g2 _26 Sr~dur{S*7}d3 Sr~dur{S*7}d3
+_27 Hg2g2 _27 Sr~dur{S*7}d3 Sr~dur{S*7}d3
+_28 Hg2g2 _28 Sr~dur{S*7}D3 Sr~dur{S*7}D3
+
+_29 Hg2g2 _29 Sr~dur{S*7}e3 Sr~dur{S*7}e3
+_30 Hg2g2 _30 Sr~dur{S*7}d3 Sr~dur{S*7}d3
+_31 Hg2g2 _31 Sr~dur{S*7}d3 Sr~dur{S*7}d3
+_32 Hc2c2 _32 Sr~dur{S*7}c3 Sr~dur{S*7}c3
+
+_33 Wc2 _ Sr~dur{7*S+H}c3
+_34 Wc2 _ Sr~dur{7*S+H}b2
+_35 Wc2_c3

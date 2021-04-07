@@ -1,0 +1,117 @@
+// header
+~title{'Air' for piano (arr. by Philip Bergwerf)}
+~composer{J.S.Bach}
+~copyright{copyright PianoScript 2021}
+
+// settings
+~mpline{5 5 5 5 5 5 4}
+~scale{150}
+~systemspace{80}
+
+// time mapping
+~meas{4/4 4 38}
+
+
+{
+// M1-...
+~hand{R}
+_1 ~bar{|:} W a4_d5_F5
+_2 b4_d5_F5
+_3 QrEb5g5SF5e5Ed5C5d5 _3 Qrrb4e4
+_4 HC5Eb4Q.a4 _4 Ha4C4_e4
+
+_5 Wa5_QrD4D4a4_5rEc4b3Qc4Ee4c4
+_6 b3_a4F5c5b4e5D5a5g5
+_7 Wg5_Qe5_b4Ee4d4e4F4g4e4
+_8 a3e5b4a4d5C5g5F5
+
+_9 ~dur{H+Q}a4_d5_F5EG5a5__Qa4_e5
+_10 d5Sd5e5QF5Ee5e5d5 _10 QF4_a4 EG4a4Qb4e4_G4
+_11 EC5b4Sb4C5Q.d5EC5b4 _11 Qe4_a4F4_a4e4_a4_b4e4_G4
+_12 ~bar{[}~textB{1}WC4_e4_a4~bar{:|}~bar{]}
+_13 ~bar{[} ~textB{2} C4_e4_a4
+
+~hand{L}
+_1 Qd2_d3~text{4/4}d3_d4C3_C4C2_C3
+_2 b1_b2b2_b3a2_a3a1_a2
+_3 g1_g2g2_g3G2_G3_e3G1_G2
+_4 a1_a2a2_a3g2_g3g1_g2
+
+_5 ~dur{H+Q}F1_F2Qe2_e3 _5 rF3_a3e3_a3
+_6 QD2_D3D1_D2b1_b2b2_b3
+_7 e2_e3e3_g3d3_g3_b3d2_d3
+_8 C2_C3C1_C2a1_a2a2_a3
+
+_9 d2_d3d3_d4C3_C4C2_C3
+_10 b1_b2b2_b3G2_G3e2_e3
+_11 a2_a3a1_a2e2_e3e1_e2
+_12 Ea1_a2b1_b2C2_C3d2_d3e2_e3g2_g3F2_F3e2_e3
+_13 W a0_a1
+
+// part II
+~hand{R}
+_14 ~bar{|:}~dur{H+E}~dur{H+E}e4_a4_C5Sd5C5b4C5Ea4
+_15 H.a5Qc5 _15 Erb4c5_a4D4e4b4a4g4
+_16 Qb4Q.b5Ea5g5F5 _16 EF4g4a4_b4F4rrQb4_D5
+_17 ~dur{H+S}g5SF5e5d5EC5b4 _17 Hb4_e5g4_b4
+
+_18 EA4b4Q.C5Ed5Q.e5 _18 Qe4 _ EC4d4e4F4e4_g4F4g4e4
+_19 ErF5Qg5g5_e5_A4F5_C5_F4 _19 F4 _ Erd5C5b4
+_20 Ee5d5C5b4C5Sd5e5Qd5 _20 Qb4b4b4A4 _20 QF4Ee4d4Qg4EF4e4
+_21 W d4_F4_b4
+
+_22 ~dur{H+E}d5EF5e5d5 _22 He4EF4_a4G4Qa4 _22 Qrb4
+_23 ~dur{H+Q}b5Ea5G5 _23 Qb4_G5 Ee4F4G4a4Qb4
+_24 SF5e5Ea5Qa4~dur{Q+E}b4SC5d5 _24 Qre4F4e4_G4
+_25 ~dur{Q+E}C5Eb4Ha4 _25 ~dur{Q+E}e4_a4Ed4C4_e4d4e4C4
+
+_26 ~dur{H+Q}d5EF5e5 _26 Qa4Hd4Qb4 _26 Qd4Eb3c4b3C4
+_27 ~dur{H+Q}e5Eg5F5 _27 Qb4He4QC5 _27 Qe4EC4b3C4D4
+_28 ~dur{H+Q}F5Ea5g5 _28 QC5HF4QD5 _28 QF4ED4C4D4e4
+_29 Wg5 _29 Ee5_b4D4e4b3g3b4g4e4
+
+_30 ~dur{H+E}a4EC5e5g5 _30 Qa3Ee3a3QC4e4
+_31 Eg5e5~dur{H+E}F5Sg5a5 _31 Qa4EC5d5Qd4a4
+_32 ~dur{H+E}d5EF5a5c6 _32 Qd4_a4e4_g4HF4_a4
+_33 ~dur{H+Q}b4_d5_g5_b5Qd4_d5
+
+_34 EC5e5Hg5Qb4 _34 Qe4_g4Eb4g4b4a4g4F4
+_35 Qa4Ee5SF5g5Eg5QF5Ee5 _35 Qe4a4Ee5d5Qg4_b4
+_36 Sd5C5Qb4EC5Qd5EC5d5 _36 Ha4g4 _36 QF4e4He4
+_37 ~bar{[}~textB{1}WF4_a4_d5
+
+_38 ~bar{:|}~bar{[}~textB{2}Wd4_F4_a4_d5
+
+~hand{L}
+_14 Qa1_a2a2_a3g2_g3g1_g2
+_15 F1_F2F3_a3_c4e3_a3_c4e2_e3
+_16 D2_D3D3_b3F3_b3_D4b1_b2
+_17 e2_e3e3_e4d3_d4d2_d3
+
+_18 C2_C3C3_C4b2_b3b1_b2
+_19 A2_A3Ee4d4QC4_e4A1_A2 _19 Qrb3
+_20 b1_b2g1_g2e1_e2F1_F2
+_21 b0_b1b2_b3a2_a3a1_a2
+
+_22 G1_G2G2_G3F2_F3F1_F2
+_23 e1_e2b2_G3_b3d3_e3_b3d1_d2
+_24 C1_C2C2_C3d2_d3e2_e3
+_25 a1_a2a2_a3g2_g3g1_g2
+
+_26 F1_F2F2_F3g2_g3g3_d4
+_27 G1_G2G2_G3a2_a3a3_e4
+_28 A1_A2A2_A3b2_b3b3_F4
+_29 e2_e3e3_g3d3_e3d2_d3
+
+_30 C2_C3C1_C2Ha1_a2 _30 Era2QrrC3_a3
+_31 d3_d4d2_d3Hc3 _ Ea3g3QF3
+_32 b2_b3b1_b2a1_a2a2_a3
+_33 g2_g3g1_g2F1_F2F2_F3
+
+_34 He2_e3 _ Erb3Qg3_e4d3_e3_b3
+_35 C2_C3a2_a3d3_a3g3
+_36 a3g3a2_a3a1_a2
+_37 Wd2_d3
+
+_38 d1_d2
+}
