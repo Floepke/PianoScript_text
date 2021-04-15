@@ -1,19 +1,28 @@
-### IMPORTS ###
-from tkinter import Tk, Text, PanedWindow, Canvas, Scrollbar, Menu, filedialog, END, messagebox, simpledialog, EventType, colorchooser, INSERT
+#--------------------
+# Imports
+#--------------------
+
+
+from tkinter import Tk, Text, PanedWindow, Canvas, Scrollbar, Menu, filedialog, END, messagebox, simpledialog
+from tkinter import colorchooser, INSERT, DoubleVar, Label, Image
 import tkinter.ttk as ttk
-import platform, subprocess, os, sys, threading, rtmidi, math
+import platform, subprocess, os, sys, threading, math, datetime, time, errno
+if platform.system() == 'Linux':
+    import rtmidi
+if platform.system() == 'Windows':
+    import ctypes
+    ctypes.windll.shcore.SetProcessDpiAwareness(1)
 from shutil import which
 
 
-### GUI ###
+#--------------------
+# GUI
+#--------------------
+
+
 #colors
 _bg = '#aaaaaa' #d9d9d9
 papercolor = '#fefff0'
-midinotecolor = '#b4b4b4'#b4b4b4
-def choose_midi_color():
-    global midinotecolor
-    midinotecolor = colorchooser.askcolor(title ="Choose color", parent=root)[1]
-    render('q', papercolor)
 
 
 # Root
@@ -22,7 +31,7 @@ root.title('PianoScript')
 ttk.Style(root).theme_use("alt")
 scrwidth = root.winfo_screenwidth()
 scrheight = root.winfo_screenheight()
-root.geometry(f"{int(scrwidth / 1.5)}x{int(scrheight / 1.25)}+{int(scrwidth / 6)}+{int(scrheight / 12)}")
+root.geometry("%sx%s+%s+%s" % (int(scrwidth / 1.5), int(scrheight / 1.25), int(scrwidth / 6), int(scrheight / 12)))
 # PanedWindow
 orient = 'h'
 # master
@@ -85,7 +94,10 @@ textw = Text(rightpanel, foreground='black', background=_bg, insertbackground='r
 textw.place(relwidth=1, relheight=1)
 textw.focus_set()
 fontsize = 16
-textw.configure(font=('Terminal', fontsize))
+if platform.system() == 'Linux':
+    textw.configure(font=('Terminal', fontsize))
+elif platform.system() == 'Windows':
+    textw.configure(font=('courier', fontsize))
 # openfiledialog
 try:
     try:
@@ -125,43 +137,43 @@ def switch_orientation():
         paned.configure(orient='h')
         orient = 0
 
-    
+
+#--------------------
+# File management
+#--------------------
 
 
+default = '''~shadeofgrey{70} //0=black; 100=white
+~numberingonoff{1}
+~hand{R} // L/R
+~mpsystem{5} // measures per line
+~systemspace{90} // minimum space between systems
+~papersize{125} // size of paper
+~fillpagetreshold{300} // devides the systems over the whole page if the restspace is smaller then this value
+~windowsgsexe{C:/Program Files/gs/gs9.54.0/bin/gswin64c.exe} // enter the windows ghostscript executable here
 
-
-
-### MAIN CODE ###
-
-##########################################################################
-## File management                                                      ##
-##########################################################################
-
-
-
-
-
-
-
-
-
-
-
-
+// This file gets loaded before each pnoscript-file
+// so you can apply default settings in this file
+// 
+// PDF EXPORT--------
+// For windows: install 'ghostscript' and enter the path
+// to the 'gswin64c.exe/gswin32c.exe' executable inside 'windowsgsexe' command(use '/')
+// For linux: sudo apt-get install [package name]'''
 
 
 starttemplate = '''//titles:
 ~title{music title}
 ~composer{music composer}
-~copyright{public license 2021}
+~copyright{copyrights reserved %s}
 
 //grid:
-~meas{4/4 4 35}
+~meas{4/4 4 36}
 
 //settings:
-~mpline{5}
-~scale{150}
+~mpsystem{5}
+~papersize{150}
 ~systemspace{90}
+~shadeofgrey{70}
 
 // music: //
 ~hand{R}
@@ -169,7 +181,8 @@ _1
 
 
 ~hand{L}
-_1 '''
+_1 ''' % datetime.datetime.now().year
+
 
 file = textw.get('1.0', END + '-1c')
 filepath = ''
@@ -183,7 +196,7 @@ def new_file():
     textw.delete('1.0', END)
     textw.insert('1.0', starttemplate, 'r')
     textw.edit_reset()
-    root.title('PianoScript - New')
+    root.title('PnoScript - New')
     filepath = 'New'
     render('normal', papercolor)
     return
@@ -193,11 +206,11 @@ def open_file():
     print('open_file')
     global filepath
     save_quest()
-    f = filedialog.askopenfile(parent=root, mode='r', title='Open', filetypes=[("PianoScript files","*.pnoscript")])
+    f = filedialog.askopenfile(parent=root, mode='Ur', title='Open', filetypes=[("PianoScript files","*.pnoscript")], initialdir='~/Desktop/')
     if f:
         filepath = f.name
-        root.title(f'PianoScript - {f.name}')
-        f = open(f.name, 'rb')
+        root.title('PnoScript - %s' % f.name)
+        f = open(f.name, 'r', newline=None)
         textw.delete('1.0', END)
         textw.insert('1.0', f.read())
         textw.edit_reset()
@@ -214,22 +227,27 @@ def save_file():
             print('save_file; canceled')
         return
     else:
-        f = open(filepath, 'wb')
-        byt = str.encode(get_file())
-        print(byt)
-        f.write()
+        point = '.'
+        for i in range(25):
+            root.title('PnoScript - Saving%s' % point)
+            point += '.'
+            root.update_idletasks()
+            time.sleep(0.01)
+        root.title('PnoScript - %s' % filepath)
+        f = open(filepath, 'w', newline=None)
+        f.write(get_file())
         f.close()
 
 
 def save_as():
     print('save_as')
     global filepath
-    f = filedialog.asksaveasfile(parent=root, mode='w', filetypes=[("PianoScript files","*.pnoscript")])
+    f = filedialog.asksaveasfile(parent=root, mode='w', filetypes=[("PianoScript files","*.pnoscript")], initialdir='~/Desktop/')
     if f:
         filepath = f.name
-        root.title(f'PianoScript - {f.name}')
-        f = open(f.name, 'wb')
-        f.write(str.encode(get_file()))
+        root.title('PnoScript - %s' % f.name)
+        f = open(f.name, 'w')
+        f.write(get_file())
         f.close()
         return
 
@@ -255,42 +273,29 @@ def save_quest():
         return
 
 
+def autosave(time=60000):
+    root.after(time, autosave)
+    if filepath == 'New':
+        return
+    save_file()
+
+
 def get_file():
     global file
     file = textw.get('1.0', END + '-1c')
     return file
 
 
-def def_score_settings():
-    '''
-    This function opens the preferences(default score settings)
-    inside the GUI text editor
-    '''
-    save_quest()
-    confexst = path.exists("config.ini")
-    print(confexst)
 
 
 
 
 
+#----------------------------------------------------
+# Tools (functions that are used by other functions)
+#----------------------------------------------------
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-##########################################################################
-## Tools                                                                ##
-##########################################################################
 def strip_file_from_comments(f):
     fl = ''
     for i in f.split('\n'):
@@ -311,10 +316,15 @@ def strip_file_from_comments(f):
 
 
 def duration_converter(string): # converts duration string to length in 'pianotick' format.
+    
+    if string == '':
+        return 0
 
     calc = ''
 
     for i in string:
+        if i in ['0','1','2','3','4','5','6','7','8','9', '+', '-', '*', '/', '(', ')', '.']:
+            calc += i
         if i == 'W':
             calc += '1024'
         if i == 'H':
@@ -327,29 +337,13 @@ def duration_converter(string): # converts duration string to length in 'pianoti
             calc += '64'
         if i == 'T':
             calc += '32'
-        if i == '+':
-            calc += '+'
-        if i == '-':
-            calc += '-'
-        if i == '*':
-            calc += '*'
-        if i == '/':
-            calc += '/'
-        if i == '(':
-            calc += '('
-        if i == ')':
-            calc += ')'
-        if i == '.':
-            calc += '.'
-        if i in ['0','1','2','3','4','5','6','7','8','9']:
-            calc += i
 
     dur = None
 
     try:
         dur = eval(calc)
     except SyntaxError:
-        print(f'wrong duration: {string}')
+        print('wrong duration: %s' % string)
         return 0
 
     return dur
@@ -421,37 +415,37 @@ def staff_height(mn, mx):
     staffheight = 0
 
     if mx >= 81:
-        staffheight = 225
+        staffheight = 260
     if mx >= 76 and mx <= 80:
-        staffheight = 190
+        staffheight = 220
     if mx >= 69 and mx <= 75:
-        staffheight = 165
+        staffheight = 190
     if mx >= 64 and mx <= 68:
-        staffheight = 130
+        staffheight = 150
     if mx >= 57 and mx <= 63:
-        staffheight = 105
+        staffheight = 120
     if mx >= 52 and mx <= 56:
-        staffheight = 70
+        staffheight = 80
     if mx >= 45 and mx <= 51:
-        staffheight = 45
+        staffheight = 50
     if mx >= 40 and mx <= 44:
         staffheight = 10
     if mx < 40:
         staffheight = 10
     if mn >= 33 and mn <= 39:
-        staffheight += 35
+        staffheight += 40
     if mn >= 28 and mn <= 32:
-        staffheight += 60
+        staffheight += 70
     if mn >= 21 and mn <= 27:
-        staffheight += 95
+        staffheight += 110
     if mn >= 16 and mn <= 20:
-        staffheight += 120
+        staffheight += 140
     if mn >= 9 and mn <= 15:
-        staffheight += 155
-    if mn >= 4 and mn <= 8:
         staffheight += 180
+    if mn >= 4 and mn <= 8:
+        staffheight += 210
     if mn >= 1 and mn <= 3:
-        staffheight += 195
+        staffheight += 230
     return staffheight
 
 
@@ -477,92 +471,96 @@ def draw_staff_lines(y, mn, mx):
 
     def drawDash2Line(y):
         x = marginx_start
-        canvas.create_line(x, y, x+(paperwidth-marginsx-marginsx), y, width=1, dash=(6,6))
-        canvas.create_line(x, y+10, x+(paperwidth-marginsx-marginsx), y+10, width=1, dash=(6,6))
+        if platform.system() == 'Linux':
+            canvas.create_line(x, y, x+(paperwidth-marginsx-marginsx), y, width=1, dash=(6,6))
+            canvas.create_line(x, y+10, x+(paperwidth-marginsx-marginsx), y+10, width=1, dash=(6,6))
+        elif platform.system() == 'Windows':
+            canvas.create_line(x, y, x+(paperwidth-marginsx-marginsx), y, width=1, dash=4)
+            canvas.create_line(x, y+10, x+(paperwidth-marginsx-marginsx), y+10, width=1, dash=4)
 
     keyline = 0
     staffheight = 0
 
     if mx >= 81:
         draw3Line(0+y)
-        draw2Line(35+y)
-        draw3Line(60+y)
-        draw2Line(95+y)
-        draw3Line(120+y)
-        draw2Line(155+y)
-        draw3Line(180+y)
-        keyline = 215
+        draw2Line(40+y)
+        draw3Line(70+y)
+        draw2Line(110+y)
+        draw3Line(140+y)
+        draw2Line(180+y)
+        draw3Line(210+y)
+        keyline = 250
     if mx >= 76 and mx <= 80:
         draw2Line(0+y)
-        draw3Line(25+y)
-        draw2Line(60+y)
-        draw3Line(85+y)
-        draw2Line(120+y)
-        draw3Line(145+y)
-        keyline = 180
+        draw3Line(30+y)
+        draw2Line(70+y)
+        draw3Line(100+y)
+        draw2Line(140+y)
+        draw3Line(170+y)
+        keyline = 210
     if mx >= 69 and mx <= 75:
         draw3Line(0+y)
-        draw2Line(35+y)
-        draw3Line(60+y)
-        draw2Line(95+y)
-        draw3Line(120+y)
-        keyline = 155
+        draw2Line(40+y)
+        draw3Line(70+y)
+        draw2Line(110+y)
+        draw3Line(140+y)
+        keyline = 180
     if mx >= 64 and mx <= 68:
         draw2Line(0+y)
-        draw3Line(25+y)
-        draw2Line(60+y)
-        draw3Line(85+y)
-        keyline = 120
+        draw3Line(30+y)
+        draw2Line(70+y)
+        draw3Line(100+y)
+        keyline = 140
     if mx >= 57 and mx <= 63:
         draw3Line(0+y)
-        draw2Line(35+y)
-        draw3Line(60+y)
-        keyline = 95
+        draw2Line(40+y)
+        draw3Line(70+y)
+        keyline = 110
     if mx >= 52 and mx <= 56:
         draw2Line(0+y)
-        draw3Line(25+y)
-        keyline = 60
+        draw3Line(30+y)
+        keyline = 70
     if mx >= 45 and mx <= 51:
         draw3Line(0+y)
-        keyline = 35
+        keyline = 40
 
     drawDash2Line(keyline+y)
 
     if mn >= 33 and mn <= 39:
-        draw3Line(keyline+25+y)
+        draw3Line(keyline+30+y)
     if mn >= 28 and mn <= 32:
-        draw3Line(keyline+25+y)
-        draw2Line(keyline+60+y)
+        draw3Line(keyline+30+y)
+        draw2Line(keyline+70+y)
     if mn >= 21 and mn <= 27:
-        draw3Line(keyline+25+y)
-        draw2Line(keyline+60+y)
-        draw3Line(keyline+85+y)
+        draw3Line(keyline+30+y)
+        draw2Line(keyline+70+y)
+        draw3Line(keyline+100+y)
     if mn >= 16 and mn <= 20:
-        draw3Line(keyline+25+y)
-        draw2Line(keyline+60+y)
-        draw3Line(keyline+85+y)
-        draw2Line(keyline+120+y)
+        draw3Line(keyline+30+y)
+        draw2Line(keyline+70+y)
+        draw3Line(keyline+100+y)
+        draw2Line(keyline+140+y)
     if mn >= 9 and mn <= 15:
-        draw3Line(keyline+25+y)
-        draw2Line(keyline+60+y)
-        draw3Line(keyline+85+y)
-        draw2Line(keyline+120+y)
-        draw3Line(keyline+145+y)
+        draw3Line(keyline+30+y)
+        draw2Line(keyline+70+y)
+        draw3Line(keyline+100+y)
+        draw2Line(keyline+140+y)
+        draw3Line(keyline+170+y)
     if mn >= 4 and mn <= 8:
-        draw3Line(keyline+25+y)
-        draw2Line(keyline+60+y)
-        draw3Line(keyline+85+y)
-        draw2Line(keyline+120+y)
-        draw3Line(keyline+145+y)
-        draw2Line(keyline+180+y)
+        draw3Line(keyline+30+y)
+        draw2Line(keyline+70+y)
+        draw3Line(keyline+100+y)
+        draw2Line(keyline+140+y)
+        draw3Line(keyline+170+y)
+        draw2Line(keyline+210+y)
     if mn >= 1 and mn <= 3:
-        draw3Line(keyline+25+y)
-        draw2Line(keyline+60+y)
-        draw3Line(keyline+85+y)
-        draw2Line(keyline+120+y)
-        draw3Line(keyline+145+y)
-        draw2Line(keyline+180+y)
-        canvas.create_line(marginx_start, keyline+205+y, marginx_start+(paperwidth-marginsx-marginsx), keyline+205+y, width=2)
+        draw3Line(keyline+30+y)
+        draw2Line(keyline+70+y)
+        draw3Line(keyline+100+y)
+        draw2Line(keyline+140+y)
+        draw3Line(keyline+170+y)
+        draw2Line(keyline+210+y)
+        canvas.create_line(marginx_start, keyline+240+y, marginx_start+(paperwidth-marginsx-marginsx), keyline+240+y, width=2)
 
 
 def draw_papers(y, papercol):
@@ -616,7 +614,7 @@ def black_key_left(x, y):  # center coordinates, radius
     x1 = x + 5
     y1 = y + 5
     canvas.create_line(x0,y+20, x0,y, width=2)
-    canvas.create_oval(x0, y0, x1, y1, outline='black', fill='black') # point
+    canvas.create_oval(x0, y0, x1, y1, outline='black', fill='black') # normal
     canvas.create_oval(x0+3, y0+4, x1-3, y1-4, outline='white', fill='white') # point
     #canvas.create_polygon(x, y+5, x+10, y, x, y-5, outline='black', fill='black') # triangle
     #canvas.create_polygon(x, y+5, x+5, y, x, y-5, outline='black', fill='black') # diamond
@@ -639,7 +637,7 @@ def white_key_left_dga(x, y):  # center coordinates, radius
     x1 = x + 10
     y1 = y + 5
     canvas.create_line(x0,y+20, x0,y, width=2)
-    canvas.create_oval(x0, y0, x1, y1, outline="black", width=2, fill='white') # point
+    canvas.create_oval(x0, y0, x1, y1, outline="black", width=2, fill='white')
     canvas.create_oval(x0+4, y0+4, x1-4, y1-4, outline="", fill='black') # point
     #canvas.create_polygon(x, y, x+5, y+5, x+10, y, x+5, y-5, outline="black", width=2, fill='white') # diamond
     #canvas.create_polygon(x, y+5, x+10, y, x, y-5, outline="black", width=2, fill='white') # triangle
@@ -652,7 +650,7 @@ def white_key_left_cefb(x, y):  # center coordinates, radius
     x1 = x + 10
     y1 = y + 3.5
     canvas.create_line(x0,y+20, x0,y, width=2)
-    canvas.create_oval(x0, y0, x1, y1, outline="black", width=2, fill='white') # point
+    canvas.create_oval(x0, y0, x1, y1, outline="black", width=2, fill='white')
     canvas.create_oval(x0+4, y0+4.5, x1-4, y1-4.5, outline="", fill='black') # point
     #canvas.create_polygon(x, y, x+5, y+3.5, x+10, y, x+5, y-3.5, outline="black", width=2, fill='white') # diamond
     #canvas.create_polygon(x, y+3.5, x+10, y, x, y-3.5, outline="black", width=2, fill='white') # triangle
@@ -671,26 +669,32 @@ def note_y_pos(note, mn, mx, cursy):
     returns the position of the given note relative to 'cursy'(the y axis staff cursor).
     '''
 
-    if mx >= 81:
-        c4 = 230
-    if mx >= 76 and mx <= 80:
-        c4 = 195
-    if mx >= 69 and mx <= 75:
-        c4 = 170
-    if mx >= 64 and mx <= 68:
-        c4 = 135
-    if mx >= 57 and mx <= 63:
-        c4 = 110
-    if mx >= 52 and mx <= 56:
-        c4 = 75
-    if mx >= 45 and mx <= 51:
-        c4 = 50
-    if mx >= 40 and mx <= 44:
-        c4 = 15
-    if mx < 40:
-        c4 = 15
+    ylist = [495, 490, 485, 475, 470, 465, 460, 455, 445, 440, 435, 430, 425, 420, 415, 
+    405, 400, 395, 390, 385, 375, 370, 365, 360, 355, 350, 345, 335, 330, 325, 320, 315, 
+    305, 300, 295, 290, 285, 280, 275, 265, 260, 255, 250, 245, 235, 230, 225, 220, 215, 
+    210, 205, 195, 190, 185, 180, 175, 165, 160, 155, 150, 145, 140, 135, 125, 120, 115, 
+    110, 105, 95, 90, 85, 80, 75, 70, 65, 55, 50, 45, 40, 35, 25, 20, 15, 10, 5, 0, -5, -15]
 
-    return (cursy + c4) + (40 - note) * 5
+    sub = 0
+
+    if mx >= 81:
+        sub = 0
+    if mx >= 76 and mx <= 80:
+        sub = 40
+    if mx >= 69 and mx <= 75:
+        sub = 70
+    if mx >= 64 and mx <= 68:
+        sub = 110
+    if mx >= 57 and mx <= 63:
+        sub = 140
+    if mx >= 52 and mx <= 56:
+        sub = 180
+    if mx >= 45 and mx <= 51:
+        sub = 210
+    if mx <= 44:
+        sub = 250
+
+    return cursy + ylist[note-1] - sub
 
 
 def diff(x, y):
@@ -701,7 +705,7 @@ def diff(x, y):
 
 
 def note_active_gradient(x0, x1, y, linenr):
-    '''draws a midi note with a stop sign(vertical line at the end of the midi-note).'''
+    '''draws a midi note with gradient'''
     x0 = event_x_pos(x0, linenr)
     x1 = event_x_pos(x1, linenr)
     width = diff(x0, x1)
@@ -781,14 +785,7 @@ def repeat_dot(x, y):  # center coordinates, radius
     canvas.create_oval(x0, y0, x1, y1, outline='black', fill='black')
 
 
-def addmeas_processor(string):
-    '''
-    This function processes the ~meas{} command. It translates the time signature to length
-    in piano-ticks. the function returns 'length in piano-tick', 'grid-division' and 
-    'amount of measures to create'.
-    '''
-
-    def measure_length(tsig, tickperquarter):
+def measure_length(tsig, tickperquarter):
         tsig = tsig.split('/')
         w = 0
         n = int(tsig[0])
@@ -801,13 +798,25 @@ def addmeas_processor(string):
             w = (n * d) / (d * 2)
         return int(tickperquarter * w)
 
+
+def addmeas_processor(string):
+    '''
+    This function processes the ~meas{} command. It translates the time signature to length
+    in piano-ticks. the function returns 'length in piano-tick', 'grid-division' and 
+    'amount of measures to create'.
+    '''
+
     string = string.split()
 
     length = measure_length(string[0], 256)
     grid = string[1]
     amount = string[2]
+    try:
+        visible = string[3]
+    except:
+        visible = 1
 
-    return length, grid, amount
+    return length, grid, amount, visible
 
 
 def continuation_dot(x, y):
@@ -865,22 +874,42 @@ def get_staff_height(line):
         maxnote = 44
     return staff_height(minnote, maxnote), minnote, maxnote
 
-def get_ts_pos(gridlist):
+def get_ts_pos_and_ts(gridlist, tsname):
     tstimes = []
+    tsnames = []
+    tslength = []
+    tsvis = []
     time = 0
     for ts in gridlist:
         tstimes.append(time)
-        time = ts[0]*ts[2]
+        tslength.append(ts[0])
+        time += ts[0]*ts[2]
+        tsvis.append(ts[3])
+    tstimes = zip(tstimes, tslength, tsname, tsvis)
     return tstimes
 
 def is_tool(name):
     """Check whether `name` is on PATH and marked as executable."""
     return which(name) is not None
 
+def grey_color(grey):
+    '''This function returns a colorcode based on a number from 0-100.
+    0=white, 100=black'''
+    if grey <= 100:
+        color = ''
+        r = '{:02x}'.format(round(grey / 100 * 255))
+        g = '{:02x}'.format(round(grey / 100 * 255))
+        b = '{:02x}'.format(round(grey / 100 * 255))
+        color = '#'+r+g+b
+        return color
+    return '#000000'
 
-#-----------------
-# MAIN
-#-----------------
+def bbox_text(i):
+    x0 = canvas.bbox(i)[0]
+    y0 = canvas.bbox(i)[1]+5
+    x1 = canvas.bbox(i)[2]
+    y1 = canvas.bbox(i)[3]-5
+    return (x0, y0, x1, y1)
 
 
 
@@ -895,6 +924,9 @@ def is_tool(name):
 
 
 
+#--------------------
+# Render function
+#--------------------
 
 
 ## score variables ##
@@ -908,7 +940,8 @@ mpline = 5
 systemspacing = 90
 scale = 100/100
 titlespace = 60
-fillpage = 300 # fillpagetreshold
+midinotecolor = '#b4b4b4'#b4b4b4
+fillpagetreshold = 300 # fillpagetreshold
 printtitle = 1 # on/off
 printcomposer = 1 # on/off
 printcopyright = 1 # on/off
@@ -916,11 +949,14 @@ measurenumbering = 1 # on/off
 dotts = 0 # on/off
 midirecord = 1
 midiswitch = 1
-#keywidth = 17.5
-# music:
+
+
+# render lists:
 grid = []
 msg = []
 pagespace = []
+pagenumbering = []
+tsnamelist = []
 
 
 ## constants ##
@@ -941,13 +977,14 @@ number2pitch = {1: 'a0', 2: 'z0', 3: 'b0',
      64: 'c6', 65: 'C6', 66: 'd6', 67: 'D6', 68: 'e6', 69: 'f6', 70: 'F6', 71: 'g6', 72: 'G6', 73: 'a6', 74: 'A6', 75: 'b6', 
      76: 'c7', 77: 'C7', 78: 'd7', 79: 'D7', 80: 'e7', 81: 'f7', 82: 'F7', 83: 'g7', 84: 'G7', 85: 'a7', 86: 'A7', 87: 'b7', 
      88: 'c8'}
-
-
-renderno = 0
+windowsgsexe = ''
 
 
 def render(rendertype='normal', papercol=papercolor): # rendertype can be type 'normal' or 'export', papercol=papercolor
-    global scale_S, renderno, pagespace, title, subtitle, composer, copyright, mpline, systemspacing, scale, grid, msg, paperheigth, paperwidth, marginsy, marginsx, printareaheight, printareawidth, printtitle, printcomposer, printcopyright, measurenumbering
+    global scale_S, renderno, pagespace, title, subtitle, composer, copyright
+    global mpline, systemspacing, scale, grid, msg, paperheigth, paperwidth
+    global marginsy, marginsx, printareaheight, printareawidth, printtitle
+    global printcomposer, printcopyright, measurenumbering, pagenumbering
     grid = []
     msg = []
     title = ''
@@ -959,11 +996,33 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
     systemspacing = 90
     scale = 150
     titlespace = 60
+    tsnamelist.clear()
 
 
     def reading():
-        global scale_S, renderno, pagespace, title, subtitle, composer, copyright, mpline, systemspacing, scale, grid, msg, paperheigth, paperwidth, marginsy, marginsx, printareaheight, printareawidth, printtitle, printcomposer, printcopyright, measurenumbering, marginx_start
-        file = strip_file_from_comments(get_file())
+        global scale_S, renderno, pagespace, title, subtitle, composer, copyright, fillpagetreshold
+        global mpline, systemspacing, scale, grid, msg, paperheigth, paperwidth, windowsgsexe
+        global marginsy, marginsx, printareaheight, printareawidth, printtitle, default
+        global printcomposer, printcopyright, measurenumbering, marginx_start, midinotecolor
+        
+        try:
+            default = open(os.path.expanduser('/pianoscript/default.pnoscript'), 'r').read()
+        except:
+            if not os.path.exists(os.path.dirname('/pianoscript/default.pnoscript')):
+                try:
+                    os.makedirs(os.path.dirname('/pianoscript/default.pnoscript'))
+                except OSError as exc: # Guard against race condition
+                    print('!!')
+                    if exc.errno != errno.EEXIST:
+                        raise
+
+            with open('/pianoscript/default.pnoscript', "w") as f:
+                f.write(default)
+            default = open(os.path.expanduser('/pianoscript/default.pnoscript'), 'r').read()
+
+
+
+        file = strip_file_from_comments(default+get_file())
 
         msgprep = []
 
@@ -1003,7 +1062,7 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
                     else:
                         msgprep.append([index, 'note', string2pitch(musicstring[index]+musicstring[index+1]), 'loose'])
 
-            # split
+            # split (gets deleted from program)
             if sym == '=':
                 msgprep.append([index, 'split'])
 
@@ -1097,6 +1156,20 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
                 except:
                     ...
 
+            # set shadeofgrey
+            if event[1] == 'shadeofgrey':
+                try:
+                    midinotecolor = grey_color(eval(event[2]))
+                except:
+                    ...
+
+            # set windowsgsexe
+            if event[1] == 'windowsgsexe':
+                try:
+                    windowsgsexe = event[2]
+                except:
+                    ...
+
             # printtitle
             if event[1] == 'printtitle':
                 try: 
@@ -1122,17 +1195,28 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
                     ...
 
             # measurenumbering
-            if event[1] == 'measurenumbering':
+            if event[1] == 'numberingonoff':
                 try: 
                     val = eval(event[2])
                     measurenumbering = val
                 except:
                     ...
 
+            # fillpagetreshold
+            if event[1] == 'fillpagetreshold':
+                try: 
+                    fillpagetreshold = eval(event[2])
+                except:
+                    ...
+
             # addmeas
             if event[1] == 'meas':
-                length, grids, amount = addmeas_processor(event[2])
-                grid.append([length, eval(grids), eval(amount)])
+                try:
+                    length, grids, amount, visible = addmeas_processor(event[2])
+                    grid.append([length, eval(grids), eval(amount), visible])
+                    tsnamelist.append(event[2].split()[0])
+                except:
+                    ...
 
 
             # slur
@@ -1156,7 +1240,7 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
                 hand = event[2]
 
             # mpline
-            if event[1] == 'mpline':
+            if event[1] == 'mpsystem':
                 try: 
                     mpline = create_mp_list(event[2])
                 except: pass
@@ -1167,7 +1251,7 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
                 except: pass
 
             # scale
-            if event[1] == 'scale':
+            if event[1] == 'papersize':
                 scale = eval(event[2])/100
                 paperheigth = mm * 297 * scale # a4 210x297 mm
                 paperwidth = mm * 210 * scale
@@ -1243,7 +1327,7 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
                 if event[2] == ':|':
                     msg.append([event[0], 'end_rpt', cursor-0.1])
                 if event[2] == '|':
-                    msg.append([event[0], 'barline', cursor])
+                    msg.append([event[0], 'man_barline', cursor])
                 if event[2] == ';':
                     msg.append([event[0], 'smalldash', cursor])
                 if event[2] == '[':
@@ -1252,38 +1336,47 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
                     msg.append([event[0], 'end_hook', cursor-0.1])
 
             # text (all types)
-            if event[1] == 'text':
-                if event[2] == 'f':
-                    msg.append([event[0], 'dynamic', cursor, event[2]])
-                elif event[2] == 'ff':
-                    msg.append([event[0], 'dynamic', cursor, event[2]])
-                elif event[2] == 'fff':
-                    msg.append([event[0], 'dynamic', cursor, event[2]])
-                elif event[2] == 'ffff':
-                    msg.append([event[0], 'dynamic', cursor, event[2]])
-                elif event[2] == 'p':
-                    msg.append([event[0], 'dynamic', cursor, event[2]])
-                elif event[2] == 'pp':
-                    msg.append([event[0], 'dynamic', cursor, event[2]])
-                elif event[2] == 'ppp':
-                    msg.append([event[0], 'dynamic', cursor, event[2]])
-                elif event[2] == 'pppp':
-                    msg.append([event[0], 'dynamic', cursor, event[2]])
-                elif event[2] == 'mf':
-                    msg.append([event[0], 'dynamic', cursor, event[2]])
-                elif event[2] == 'mf':
-                    msg.append([event[0], 'dynamic', cursor, event[2]])
+            if event[1] == 'text' or event[1] == 'textB' or event[1] == 'textI':
+                text = ''
+                xoffset = 0
+                yoffset = 0
+                size = 18
+                if '%' in event[2]:
+                    text = event[2].split('%')[0]
+                    try: xoffset = eval(event[2].split('%')[1].split()[0])
+                    except: ...
+                    try: yoffset = eval(event[2].split('%')[1].split()[1])
+                    except: ...
+                    try: size = eval(event[2].split('%')[1].split()[2])
+                    except: ...
                 else:
-                    msg.append([event[0], 'text', cursor, event[2]])
-            if event[1] == 'textB':
-                msg.append([event[0], 'textB', cursor, event[2]])
-            if event[1] == 'textI':
-                msg.append([event[0], 'textI', cursor, event[2]])
+                    text = event[2]
+                msg.append([event[0], event[1], cursor, text, xoffset, yoffset, size])
 
         # creating time signature text msg
-        tspos = get_ts_pos(grid)
+        tspos = get_ts_pos_and_ts(grid, tsnamelist)
+        for i in tspos:
+            msg.append(['index', 'tstext', i[0], i[1], i[2], i[3]])
 
+        # skip bar numbering
+        barlineposlist = barline_pos_list(grid)
+        counter = 1
+        pagenumbering.clear()
+        for i in range(len(barlineposlist)):
+            pagenumbering.append(i)
+            counter += 1
+        for event in msgprep:   
+            if event[1] == 'skipbarcount':
+                try:
+                    bar = eval(event[2])
+                    ind = pagenumbering.index(bar)
+                    pagenumbering.insert(ind, 0)
+                    pagenumbering.pop()
+                except:
+                    ...
 
+        if len(grid) == 0:
+            return
 
 
 
@@ -1426,8 +1519,7 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
                 counter += 1
                 draw_papers(cursy, papercol)
                 if printcopyright == 1:
-                    canvas.create_text(marginx_start, cursy+20+paperheigth, text=f'page {counter} of {len(msg)} | {title} | {copyright} - PianoScript sheet', anchor='w', font=("Courier", 16, "normal"))
-                #canvas.create_rectangle(70, cursy+5+paperheigth, 70+printareawidth, cursy+35+paperheigth)
+                    canvas.create_text(marginx_start, cursy+20+paperheigth, text='page %s of %s | %s | %s' % (counter, len(msg), title, copyright), anchor='w', font=("Courier", 16, "normal"))
 
                 cursy += paperheigth + 50
 
@@ -1463,16 +1555,16 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
 
                     if len(page) == 1:
                         cursy += staffheight + systemspacing + (pagespace[pcounter-1] / (len(page)))
-                    elif pagespace[pcounter-1] < fillpage:
+                    elif pagespace[pcounter-1] < fillpagetreshold:
                         cursy += staffheight + systemspacing + (pagespace[pcounter-1] / (len(page)-1))
-                    elif pagespace[pcounter-1] >= fillpage:
+                    elif pagespace[pcounter-1] >= fillpagetreshold:
 
                         cursy += staffheight + systemspacing
 
                 cursy = (paperheigth+50) * pcounter + 100
 
 
-        def draw_barlines_and_text():
+        def draw_barlines():
             cursy = 90 + titlespace
             pcounter = 0
             lcounter = 0
@@ -1492,8 +1584,13 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
                             bcounter += 1
                             canvas.create_line(event_x_pos(note[2], lcounter), cursy, event_x_pos(note[2], lcounter), cursy+staffheight, width=2)
                             if measurenumbering == 1:
-                                canvas.create_text(event_x_pos(note[2]+12.5, lcounter), cursy-20, text=bcounter, anchor='w', font=('Terminal', 14, 'normal'))
+                                bnum = pagenumbering[bcounter]
+                                if bnum > 0:
+                                    canvas.create_text(event_x_pos(note[2], lcounter)+5, cursy-20, text=bnum, anchor='w', font=('Courier', 14, 'normal'))
 
+                        if note[1] == 'man_barline':
+                            canvas.create_line(event_x_pos(note[2], lcounter), cursy, event_x_pos(note[2], lcounter), cursy+staffheight, width=2)
+                        
                         if note[1] == 'bgn_rpt':
                             canvas.create_line(event_x_pos(note[2], lcounter), cursy, event_x_pos(note[2], lcounter), cursy+staffheight+40, width=2)
                             repeat_dot(event_x_pos(note[2], lcounter)+5, cursy+staffheight+15)
@@ -1512,17 +1609,68 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
                             canvas.create_line(event_x_pos(note[2], lcounter), cursy, event_x_pos(note[2], lcounter), cursy+staffheight+40,
                                 event_x_pos(note[2], lcounter), cursy+staffheight+40, event_x_pos(note[2], lcounter)-80, cursy+staffheight+40, width=2)
 
+
+                    canvas.create_line(marginx_start+(paperwidth-marginsx-marginsx), cursy, marginx_start+(paperwidth-marginsx-marginsx), cursy+staffheight, width=2)
+
+                    if lcounter == len(newline_pos_list(grid, mpline)):
+                        canvas.create_line(marginx_start+(paperwidth-marginsx-marginsx), cursy, marginx_start+(paperwidth-marginsx-marginsx), cursy+staffheight, width=5)
+
+
+                    if len(page) == 1:
+                        cursy += staffheight + systemspacing + (pagespace[pcounter-1] / (len(page)))
+                    elif pagespace[pcounter-1] < fillpagetreshold:
+                        cursy += staffheight + systemspacing + (pagespace[pcounter-1] / (len(page)-1))
+                    elif pagespace[pcounter-1] >= fillpagetreshold:
+                        cursy += staffheight + systemspacing
+
+                cursy = (paperheigth+50) * pcounter + 100
+
+
+        def draw_text():
+            cursy = 90 + titlespace
+            pcounter = 0
+            lcounter = 0
+            bcounter = 0
+
+            for page in msg:
+                pcounter += 1
+
+
+                for line in page:
+                    lcounter += 1
+                    staffheight, minnote, maxnote = get_staff_height(line)
+
+                    for note in line:
+
+                        if note[1] == 'tstext':
+                            start = event_x_pos(note[2], lcounter)
+                            end = event_x_pos(note[2]+note[3], lcounter)
+                            if note[5] == 1:
+                                canvas.create_text(start+15, cursy+staffheight+25, text=note[4], anchor='w', font=('Courier', 14, 'bold'))
+                                canvas.create_line(start, cursy+staffheight, 
+                                                    start, cursy+staffheight+40, 
+                                                    start, cursy+staffheight+40, 
+                                                    end, cursy+staffheight+40,
+                                                    end, cursy+staffheight+40,
+                                                    end, cursy+staffheight, width=2)
+
                         if note[1] == 'textB':
-                            canvas.create_text(event_x_pos(note[2], lcounter)+10, cursy+staffheight+25, text=note[3], anchor='w', font='Helvetica 18 bold')
+                            i=canvas.create_text(event_x_pos(note[2], lcounter)+10+note[4], cursy+staffheight+25+note[5], text=note[3], anchor='w', font=('Courier', note[6], 'bold'))
+                            r=canvas.create_rectangle(bbox_text(i),fill="white", outline='')
+                            canvas.tag_lower(r,i)
 
                         if note[1] == 'textI':
-                            canvas.create_text(event_x_pos(note[2], lcounter)+10, cursy+staffheight+25, text=note[3], anchor='w', font='Helvetica 18 italic')
+                            i=canvas.create_text(event_x_pos(note[2], lcounter)+10+note[4], cursy+staffheight+25+note[5], text=note[3], anchor='w', font=('Courier', note[6], 'italic'))
+                            r=canvas.create_rectangle(bbox_text(i),fill="white", outline='')
+                            canvas.tag_lower(r,i)
 
                         if note[1] == 'text':
-                            canvas.create_text(event_x_pos(note[2], lcounter)+10, cursy+staffheight+25, text=note[3], anchor='w', font='Helvetica 18')
+                            i=canvas.create_text(event_x_pos(note[2], lcounter)+10+note[4], cursy+staffheight+25+note[5], text=note[3], anchor='w', font=('Courier', note[6], 'normal'))
+                            r=canvas.create_rectangle(bbox_text(i),fill="white", outline='')
+                            canvas.tag_lower(r,i)
 
                         if note[1] == 'bpm':
-                            canvas.create_text(event_x_pos(note[2], lcounter)+10, cursy+staffheight+25, text=f'bpm = {note[3]}', anchor='w', font='Helvetica 18')
+                            canvas.create_text(event_x_pos(note[2], lcounter)+10, cursy+staffheight+25, text='bpm = %s' % note[3], anchor='w', font='Courier 18')
 
 
                     canvas.create_line(marginx_start+(paperwidth-marginsx-marginsx), cursy, marginx_start+(paperwidth-marginsx-marginsx), cursy+staffheight, width=2)
@@ -1533,9 +1681,9 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
 
                     if len(page) == 1:
                         cursy += staffheight + systemspacing + (pagespace[pcounter-1] / (len(page)))
-                    elif pagespace[pcounter-1] < fillpage:
+                    elif pagespace[pcounter-1] < fillpagetreshold:
                         cursy += staffheight + systemspacing + (pagespace[pcounter-1] / (len(page)-1))
-                    elif pagespace[pcounter-1] >= fillpage:
+                    elif pagespace[pcounter-1] >= fillpagetreshold:
                         cursy += staffheight + systemspacing
 
                 cursy = (paperheigth+50) * pcounter + 100
@@ -1557,9 +1705,9 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
 
                     if len(page) == 1:
                         cursy += staffheight + systemspacing + (pagespace[pcounter-1] / (len(page)))
-                    elif pagespace[pcounter-1] < fillpage:
+                    elif pagespace[pcounter-1] < fillpagetreshold:
                         cursy += staffheight + systemspacing + (pagespace[pcounter-1] / (len(page)-1))
-                    elif pagespace[pcounter-1] >= fillpage:
+                    elif pagespace[pcounter-1] >= fillpagetreshold:
                         cursy += staffheight + systemspacing
 
                 cursy = (paperheigth+50) * pcounter + 100
@@ -1614,18 +1762,18 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
                             if note[4] in white_cf:
 
                                 if note[5] == 'R':
-                                    white_key_right_cefb(notex, notey-1.5)
+                                    white_key_right_dga(notex, notey)
                                 elif note[5] == 'L':
-                                    white_key_left_cefb(notex, notey-1.5)
+                                    white_key_left_dga(notex, notey)
                                 else:
                                     pass
 
                             if note[4] in white_be:
 
                                 if note[5] == 'R':
-                                    white_key_right_cefb(notex, notey+1.5)
+                                    white_key_right_dga(notex, notey)
                                 elif note[5] == 'L':
-                                    white_key_left_cefb(notex, notey+1.5)
+                                    white_key_left_dga(notex, notey)
                                 else:
                                     pass
 
@@ -1680,9 +1828,9 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
 
                     if len(page) == 1:
                         cursy += staffheight + systemspacing + (pagespace[pcounter-1] / (len(page)))
-                    elif pagespace[pcounter-1] < fillpage:
+                    elif pagespace[pcounter-1] < fillpagetreshold:
                         cursy += staffheight + systemspacing + (pagespace[pcounter-1] / (len(page)-1))
-                    elif pagespace[pcounter-1] >= fillpage:
+                    elif pagespace[pcounter-1] >= fillpagetreshold:
                         cursy += staffheight + systemspacing
 
                 cursy = (paperheigth+50) * pcounter + 100
@@ -1720,19 +1868,19 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
 
                             if note[5] == 'R':
                                 if note[2] in barlineposlist:
-                                    canvas.create_line(notex, notey, notex, notey+7.5, fill='white', width=2)
+                                    canvas.create_line(notex, notey, notex, notey+10, fill='white', width=2)
                             elif note[5] == 'L':
                                 if note[2] in barlineposlist:
-                                    canvas.create_line(notex, notey, notex, notey-7.5, fill='white', width=2)
+                                    canvas.create_line(notex, notey, notex, notey-10, fill='white', width=2)
                             else:
                                 pass
 
 
                     if len(page) == 1:
                         cursy += staffheight + systemspacing + (pagespace[pcounter-1] / (len(page)))
-                    elif pagespace[pcounter-1] < fillpage:
+                    elif pagespace[pcounter-1] < fillpagetreshold:
                         cursy += staffheight + systemspacing + (pagespace[pcounter-1] / (len(page)-1))
-                    elif pagespace[pcounter-1] >= fillpage:
+                    elif pagespace[pcounter-1] >= fillpagetreshold:
                         cursy += staffheight + systemspacing
 
                 cursy = (paperheigth+50) * pcounter + 100
@@ -1771,9 +1919,9 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
 
                     if len(page) == 1:
                         cursy += staffheight + systemspacing + (pagespace[pcounter-1] / (len(page)))
-                    elif pagespace[pcounter-1] < fillpage:
+                    elif pagespace[pcounter-1] < fillpagetreshold:
                         cursy += staffheight + systemspacing + (pagespace[pcounter-1] / (len(page)-1))
-                    elif pagespace[pcounter-1] >= fillpage:
+                    elif pagespace[pcounter-1] >= fillpagetreshold:
                         cursy += staffheight + systemspacing
 
                 cursy = (paperheigth+50) * pcounter + 100
@@ -1797,15 +1945,19 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
 
                     if len(page) == 1:
                         cursy += staffheight + systemspacing + (pagespace[pcounter-1] / (len(page)))
-                    elif pagespace[pcounter-1] < fillpage:
+                    elif pagespace[pcounter-1] < fillpagetreshold:
                         cursy += staffheight + systemspacing + (pagespace[pcounter-1] / (len(page)-1))
-                    elif pagespace[pcounter-1] >= fillpage:
+                    elif pagespace[pcounter-1] >= fillpagetreshold:
                         cursy += staffheight + systemspacing
 
                 cursy = (paperheigth+50) * pcounter + 100
 
 
         def draw_continuation_dot():
+            '''
+            This function prints a dot if anoter note from the same hand is starting when the current
+            note is still sounding. Not sure if this is going to be part of the notation.
+            '''
             cursy = 90 + titlespace
             pcounter = 0
             lcounter = 0
@@ -1846,9 +1998,9 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
 
                     if len(page) == 1:
                         cursy += staffheight + systemspacing + (pagespace[pcounter-1] / (len(page)))
-                    elif pagespace[pcounter-1] < fillpage:
+                    elif pagespace[pcounter-1] < fillpagetreshold:
                         cursy += staffheight + systemspacing + (pagespace[pcounter-1] / (len(page)-1))
-                    elif pagespace[pcounter-1] >= fillpage:
+                    elif pagespace[pcounter-1] >= fillpagetreshold:
                         cursy += staffheight + systemspacing
 
                 cursy = (paperheigth+50) * pcounter + 100
@@ -1857,24 +2009,18 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
         # drawing order
         draw_paper()
         draw_note_active()
-        draw_barlines_and_text()
+        draw_barlines()
         draw_hand_split_whitespace()
         draw_staff()
         draw_grid_lines()
         draw_note_start()
         draw_slur()
-        #draw_continuation_dot()
+        draw_text()
+        # draw_continuation_dot()
 
     drawing()
     canvas.configure(scrollregion=bbox_offset(canvas.bbox("all")))
     return len(msg)
-
-
-def autosave():
-    root.after(60000, autosave)
-    if filepath == 'New':
-        return
-    save_file()
     
 def renderkey(q='q'):
     render('normal', papercolor)
@@ -1900,15 +2046,14 @@ def exportPS():
     f = filedialog.asksaveasfile(mode='w', parent=root, filetypes=[("Postscript","*.ps")], initialfile=title, initialdir='~/Desktop')
 
     if f:
-        name = f.name[:-3]
         counter = 0
 
         for export in range(render('export')):
             counter += 1
             print('printing page ', counter)
-            canvas.postscript(file=f"{name} p{counter}.ps", colormode='gray', x=40, y=50+(export*(paperheigth+50)), width=paperwidth, height=paperheigth, rotate=False)
+            canvas.postscript(file=f"{f.name}_p{counter}.ps", colormode='gray', x=40, y=50+(export*(paperheigth+50)), width=paperwidth, height=paperheigth, rotate=False)
 
-        os.remove(f.name)
+        #os.remove(f.name)
         renderkey()
 
     else:
@@ -1935,24 +2080,45 @@ def exportPDF():
             n = render('export', 'white')
             pslist = []
             for rend in range(n):
-                canvas.postscript(file=f"tmp{rend}.ps", x=40, y=50+(rend*(paperheigth+50)), width=paperwidth, height=paperheigth, rotate=False)
-                process = subprocess.Popen(["ps2pdfwr", "-sPAPERSIZE=a4", "-dFIXEDMEDIA", "-dEPSFitPage", f"tmp{rend}.ps"])
+                canvas.postscript(file="/tmp/tmp%s.ps" % rend, x=40, y=50+(rend*(paperheigth+50)), width=paperwidth, height=paperheigth, rotate=False)
+                process = subprocess.Popen(["ps2pdfwr", "-sPAPERSIZE=a4", "-dFIXEDMEDIA", "-dEPSFitPage", "/tmp/tmp%s.ps" % rend, "/tmp/tmp%s.pdf" % rend])
                 process.wait()
-                os.remove(f"tmp{rend}.ps")
-                pslist.append(f"tmp{rend}.pdf")
-                cmd = 'pdfunite '
-                for i in range(len(pslist)):
-                    cmd += pslist[i] + ' '
-                cmd += f'"{f.name}"'
-                process = subprocess.Popen(cmd, shell=True)
-                process.wait()
-            for x in pslist:
-                os.remove(x)
+                os.remove("/tmp/tmp%s.ps" % rend)
+                pslist.append("/tmp/tmp%s.pdf" % rend)
+            cmd = 'pdfunite '
+            for i in range(len(pslist)):
+                cmd += pslist[i] + ' '
+            cmd += '"%s"' % f.name
+            process = subprocess.Popen(cmd, shell=True)
+            process.wait()
+            # for x in pslist:
+            #     os.remove(x)
             renderkey()
             return
-                
         else:
             return
+                
+    elif platform.system() == 'Windows':
+        f = filedialog.asksaveasfile(mode='w', parent=root, filetypes=[("pdf file","*.pdf")], initialfile=title, initialdir='~/Desktop')
+        if f:
+            print(f.name)
+            counter = 0
+            pslist = []
+            for export in range(render('export')):
+                counter += 1
+                print('printing page ', counter)
+                canvas.postscript(file=f"{f.name}{counter}.ps", colormode='gray', x=40, y=50+(export*(paperheigth+50)), width=paperwidth, height=paperheigth, rotate=False)
+                pslist.append(str('"'+str(f.name)+str(counter)+'.ps'+'"'))
+            try:
+                process = subprocess.Popen(f'''"{windowsgsexe}" -dQUIET -dBATCH -dNOPAUSE -dFIXEDMEDIA -sPAPERSIZE=a4 -dEPSFitPage -sDEVICE=pdfwrite -sOutputFile="{f.name}.pdf" {' '.join(pslist)}''', shell=True)
+                process.wait()
+                process.terminate()
+                for i in pslist:
+                    os.remove(i.strip('"'))
+                f.close()
+                os.remove(f.name)
+            except:
+                messagebox.showinfo(title="Can't export PDF!", message='Be sure you have selected a valid path in the default.pnoscript file. You have to set the path+gswin64c.exe. example: ~windowsgsexe{C:/Program Files/gs/gs9.54.0/bin/gswin64c.exe}')
 
 
 
@@ -1981,6 +2147,8 @@ def midi_toggle(q='q'):
 
 def midi_input():
 
+    dev = rtmidi.RtMidiIn()
+
     class Collector(threading.Thread):
         def __init__(self, device, port):
             threading.Thread.__init__(self)
@@ -1995,6 +2163,7 @@ def midi_input():
             self.device.ignoreTypes(True, False, True)
             while True:
                 if midiswitch == 0:
+                    print('CLOSING MIDI PORT...')
                     return
                 msg = self.device.getMessage(2500)
                 if msg:
@@ -2006,15 +2175,15 @@ def midi_input():
                             elif shiftkey == 1:
                                 textw.insert(textw.index(INSERT), '_'+number2pitch[note])
                             renderkey()
-
-    dev = rtmidi.RtMidiIn()
+    
     for i in range(dev.getPortCount()):
         device = rtmidi.RtMidiIn()
         print('OPENING',dev.getPortName(i))
         collector = Collector(device, i)
         collector.start()
 
-threading.Thread(target=midi_input).start()
+if platform.system() == 'Linux':
+    threading.Thread(target=midi_input).start()
 
 
 
@@ -2065,12 +2234,11 @@ draw_piano_keyboard()
 
 
 def mouse_note_input(event):
-    note = math.floor(event.x / keywidth + 1)
+    note = math.floor(event.x / keywidth) + 1
     if note in black:
-        piano.create_rectangle((note-1)*keywidth, 0, (note-1)*keywidth+keywidth, (keylength/3*2), fill='green', width=6)
+        piano.create_rectangle((note-1)*keywidth, 0, (note-1)*keywidth+keywidth, (keylength/3*2), fill='green', width=4)
     else:
-        piano.create_rectangle((note-1)*keywidth, 0, (note-1)*keywidth+keywidth, keylength, fill='green', width=6)
-    print(event.num)
+        piano.create_rectangle((note-1)*keywidth, 0, (note-1)*keywidth+keywidth, keylength, fill='green', width=4)
     if note <= 88:
         if shiftkey == 0:
             textw.insert(textw.index(INSERT), number2pitch[note])
@@ -2144,16 +2312,18 @@ fileMenu.add_separator()
 
 submenu = Menu(fileMenu, tearoff=0)
 submenu.add_command(label="postscript", command=exportPS)
-submenu.add_command(label="pdf (linux only)", command=exportPDF)
+submenu.add_command(label="pdf", command=exportPDF)
 fileMenu.add_cascade(label='export', menu=submenu, underline=0)
 
 fileMenu.add_separator()
 
-fileMenu.add_command(label="note color", underline=0, command=choose_midi_color)
 fileMenu.add_command(label="horizontal/vertical", underline=0, command=switch_orientation)
-fileMenu.add_command(label="insert barcheck tool", underline=0, command=inserting_barchecks)
 fileMenu.add_command(label="fullscreen/windowed (F11)", underline=0, command=menufullscreen)
 fileMenu.add_command(label="toggle midi input (esc)", underline=0, command=midi_toggle)
+
+fileMenu.add_separator()
+
+fileMenu.add_command(label="insert barcheck tool", underline=0, command=inserting_barchecks)
 
 fileMenu.add_separator()
 
