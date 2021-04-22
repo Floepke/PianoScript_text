@@ -7,8 +7,8 @@ from tkinter import Tk, Text, PanedWindow, Canvas, Scrollbar, Menu, filedialog, 
 from tkinter import colorchooser, INSERT, DoubleVar, Label, Image
 import tkinter.ttk as ttk
 import platform, subprocess, os, sys, threading, math, datetime, time, errno
-if platform.system() == 'Linux':
-    import rtmidi
+# if platform.system() == 'Linux':
+#     import rtmidi
 if platform.system() == 'Windows':
     import ctypes
     ctypes.windll.shcore.SetProcessDpiAwareness(1)
@@ -51,7 +51,7 @@ paned.add(leftpanel)
 rightpanel = PanedWindow(paned, sashwidth=15, sashcursor='arrow', relief='flat', bg=_bg)
 paned.add(rightpanel)
 # Canvas --> leftpanel
-canvas = Canvas(leftpanel, bg=_bg, relief='flat')
+canvas = Canvas(leftpanel, bg=papercolor, relief='flat')
 canvas.place(relwidth=1, relheight=1)
 vbar = Scrollbar(canvas, orient='vertical', width=20, relief='flat', bg=_bg)
 vbar.pack(side='right', fill='y')
@@ -80,24 +80,34 @@ def zoomerP(event):
 def zoomerM(event):
     canvas.scale("all", event.x, event.y, 0.9, 0.9)
     canvas.configure(scrollregion=bbox_offset(canvas.bbox("all")))
-canvas.bind("<5>", scrollD)
-canvas.bind("<4>", scrollU)
-canvas.bind("<1>", zoomerP)
-canvas.bind("<3>", zoomerM)
-
+# linux scroll
+if platform.system() == 'Linux':
+    canvas.bind("<5>", scrollD)
+    canvas.bind("<4>", scrollU)
+    canvas.bind("<1>", zoomerP)
+    canvas.bind("<3>", zoomerM)
+# mac scroll
 if platform.system() == 'Darwin':
     def _on_mousewheel(event):
         canvas.yview_scroll(-1*(event.delta), "units")
     canvas.bind("<MouseWheel>", _on_mousewheel)
+# windows scroll
+if platform.system() == 'Windows':
+    def _on_mousewheel(event):
+        canvas.yview_scroll(int(-1*(event.delta)/120), "units")
+    canvas.bind("<MouseWheel>", _on_mousewheel)
+    canvas.bind("<Button-1>", zoomerP)
+    canvas.bind("<Button-3>", zoomerM)
+
 # text --> rightpanel
 textw = Text(rightpanel, foreground='black', background=_bg, insertbackground='red', undo=True, maxundo=100, autoseparators=True)
 textw.place(relwidth=1, relheight=1)
 textw.focus_set()
-fontsize = 16
+fsize = 16
 if platform.system() == 'Linux':
-    textw.configure(font=('Terminal', fontsize))
+    textw.configure(font=('Terminal', fsize))
 elif platform.system() == 'Windows':
-    textw.configure(font=('courier', fontsize))
+    textw.configure(font=('courier', fsize))
 # openfiledialog
 try:
     try:
@@ -167,7 +177,7 @@ starttemplate = '''//titles:
 ~copyright{copyrights reserved %s}
 
 //grid:
-~meas{4/4 4 36}
+~meas{36 4/4 4 2}
 
 //settings:
 ~mpsystem{5}
@@ -178,6 +188,7 @@ starttemplate = '''//titles:
 // music: //
 ~hand{R}
 _1 
+
 
 
 ~hand{L}
@@ -198,7 +209,6 @@ def new_file():
     textw.edit_reset()
     root.title('PnoScript - New')
     filepath = 'New'
-    render('normal', papercolor)
     return
 
 
@@ -254,8 +264,9 @@ def save_as():
 
 def quit_editor():
     print('quit_editor')
-    global midiswitch
-    midiswitch = 0
+    global whileloops
+    whileloops = 0
+    time.sleep(0.1)
     if filepath == 'New':
         save_quest()
     else:
@@ -371,8 +382,7 @@ def string2pitch(string):
     # Oct 8
     'c8':88
     }
-    ret = pitchdict[string]
-    return ret
+    return pitchdict[string]
 
 
 def barline_pos_list(gridlist):
@@ -581,12 +591,12 @@ def black_key_right(x, y):  # center coordinates, radius
     canvas.create_oval(x0, y0, x1, y1, outline='black', fill='black')
 
 
-def black_key_right_bf(x, y):  # center coordinates, radius
-    x0 = x
+def black_key_right_hlf(x, y):  # center coordinates, radius
+    x0 = x - 5
     y0 = y - 5
-    x1 = x - 10
+    x1 = x + 5 - 5
     y1 = y + 5
-    canvas.create_line(x0,y-20, x0,y, width=2)
+    canvas.create_line(x0+5,y-20, x0+5,y, width=2)
     canvas.create_oval(x0, y0, x1, y1, outline='black', fill='black')
 
 
@@ -621,12 +631,14 @@ def black_key_left(x, y):  # center coordinates, radius
     #canvas.create_oval(x0+3, y0+4, x1-3, y1-4, outline='', fill='white')
 
 
-def black_key_left_bf(x, y):  # center coordinates, radius
-    x0 = x
+def black_key_left_hlf(x, y):  # center coordinates, radius
+    x0 = x - 5
     y0 = y - 5
-    x1 = x - 10
+    x1 = x + 5 - 5
     y1 = y + 5
-    canvas.create_line(x0,y+20, x0,y, width=2)
+    canvas.create_line(x0+5,y+20, x0+5,y, width=2)
+    canvas.create_oval(x0, y0, x1, y1, outline='black', fill='black') # normal
+    canvas.create_oval(x0+3, y0+4, x1-3, y1-4, outline='white', fill='white') # point
     # canvas.create_polygon(x, y, x+5, y+5, x+10, y, x+5, y-5, outline='black', fill='black') # triangle
     #canvas.create_oval(x0-3, y0+4, x1+3, y1-4, outline='', fill='white')
 
@@ -808,15 +820,20 @@ def addmeas_processor(string):
 
     string = string.split()
 
-    length = measure_length(string[0], 256)
-    grid = string[1]
-    amount = string[2]
+    amount = string[0]
+    length = measure_length(string[1], 256)
+    grid = string[2]
     try:
-        visible = string[3]
+        beam = string[3]
+    except:
+        beam = 0
+    
+    try:
+        visible = string[4]
     except:
         visible = 1
 
-    return length, grid, amount, visible
+    return length, grid, amount, visible, beam
 
 
 def continuation_dot(x, y):
@@ -911,6 +928,47 @@ def bbox_text(i):
     y1 = canvas.bbox(i)[3]-5
     return (x0, y0, x1, y1)
 
+def prepare_beams(thelist):
+    returnlist = []
+
+    def isnewline(thelist):
+        old = 0
+        index = 0
+        for tup in thelist:
+            if old > tup[0]:
+                return True
+            else:
+                old = tup[0]
+        return False
+
+    for beam in thelist:
+        if isnewline(beam) == False:
+            returnlist.append(beam)
+        else:
+            old = 0
+            index = 0
+            curr_beam = []
+            for tup in beam:
+                if index == 0:#first iteration
+                    curr_beam.append(tup)
+                    old = tup[0]
+                elif old > tup[0]:#if newline
+                    returnlist.append(curr_beam)
+                    curr_beam = []
+                    curr_beam.append(tup)
+                    old = tup[0]
+                elif index+1 == len(beam):#last iteration
+                    curr_beam.append(tup)
+                    returnlist.append(curr_beam)
+                else:
+                    curr_beam.append(tup)
+                    old = tup[0]
+                index += 1
+    return returnlist
+
+def interpolation(x, y, z):
+        return (z - x) / (y - x)
+
 
 
 
@@ -948,7 +1006,7 @@ printcopyright = 1 # on/off
 measurenumbering = 1 # on/off
 dotts = 0 # on/off
 midirecord = 1
-midiswitch = 1
+whileloops = 1
 
 
 # render lists:
@@ -997,6 +1055,9 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
     scale = 150
     titlespace = 60
     tsnamelist.clear()
+    fontsize = 18
+    if rendertype == 'export':
+        fontsize = 26
 
 
     def reading():
@@ -1005,20 +1066,39 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
         global marginsy, marginsx, printareaheight, printareawidth, printtitle, default
         global printcomposer, printcopyright, measurenumbering, marginx_start, midinotecolor
         
-        try:
-            default = open(os.path.expanduser('/pianoscript/default.pnoscript'), 'r').read()
-        except:
-            if not os.path.exists(os.path.dirname('/pianoscript/default.pnoscript')):
+        def create_dir_win():
+            global default
+
+            if not os.path.exists('~Documents/pianoscript/default.pnoscript'):
                 try:
-                    os.makedirs(os.path.dirname('/pianoscript/default.pnoscript'))
+                    os.makedirs('~Documents/pianoscript/default.pnoscript')
+                except OSError as exc: # Guard against race condition
+                    if exc.errno != errno.EEXIST:
+                        raise
+
+
+        def create_dir_lin():
+            global default
+
+            if not os.path.exists(os.path.expanduser('~Documents/pianoscript/')):
+                print('!')
+                try:
+                    os.makedirs(os.path.expanduser('~Documents/pianoscript/'))
                 except OSError as exc: # Guard against race condition
                     print('!!')
                     if exc.errno != errno.EEXIST:
                         raise
 
-            with open('/pianoscript/default.pnoscript', "w") as f:
+            if platform.system() == 'Windows':
+                create_dir_win()
+            elif platform.system() == 'Linux':
+                create_dir_lin()
+
+            with open('~Documents/pianoscript/default.pnoscript', "w") as f:
                 f.write(default)
-            default = open(os.path.expanduser('/pianoscript/default.pnoscript'), 'r').read()
+            default = open(os.path.expanduser('~Documents/pianoscript/default.pnoscript'), 'r').read()
+
+        
 
 
 
@@ -1057,10 +1137,7 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
             # note
             if sym in ['a', 'A', 'b', 'c', 'C', 'd', 'D', 'e', 'f', 'F', 'g', 'G', 'q', 'w', 'x', 'y', 'z']:
                 if musicstring[index+1] in ['0', '1', '2', '3', '4', '5', '6', '7', '8']:
-                    if musicstring[index+2] == '-':
-                        msgprep.append([index, 'note', string2pitch(musicstring[index]+musicstring[index+1]), 'bound'])
-                    else:
-                        msgprep.append([index, 'note', string2pitch(musicstring[index]+musicstring[index+1]), 'loose'])
+                    msgprep.append([index, 'note', string2pitch(musicstring[index]+musicstring[index+1])])
 
             # split (gets deleted from program)
             if sym == '=':
@@ -1080,6 +1157,18 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
 
                             msgprep.append([index, 'cursor', eval(dig)])
                             break
+
+            # beam
+            if sym == '[':
+                msgprep.append([index, 'beam_on'])
+            if sym == ']':
+                msgprep.append([index, 'beam_off'])
+
+            # slur
+            if sym == '(':
+                msgprep.append([index, 'slur_on'])
+            if sym == ')':
+                msgprep.append([index, 'slur_off'])
 
             # durations
             if sym == 'W':
@@ -1173,32 +1262,28 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
             # printtitle
             if event[1] == 'printtitle':
                 try: 
-                    val = eval(event[2])
-                    printtitle = val
+                    printtitle = eval(event[2])
                 except:
                     ...
 
             # printcomposer
             if event[1] == 'printcomposer':
                 try: 
-                    val = eval(event[2])
-                    printcomposer = val
+                    printcomposer = eval(event[2])
                 except:
                     ...
 
             # printcopyright
             if event[1] == 'printcopyright':
                 try: 
-                    val = eval(event[2])
-                    printcopyright = val
+                    printcopyright = eval(event[2])
                 except:
                     ...
 
             # measurenumbering
             if event[1] == 'numberingonoff':
                 try: 
-                    val = eval(event[2])
-                    measurenumbering = val
+                    measurenumbering = eval(event[2])
                 except:
                     ...
 
@@ -1212,9 +1297,9 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
             # addmeas
             if event[1] == 'meas':
                 try:
-                    length, grids, amount, visible = addmeas_processor(event[2])
-                    grid.append([length, eval(grids), eval(amount), visible])
-                    tsnamelist.append(event[2].split()[0])
+                    length, grids, amount, visible, beam = addmeas_processor(event[2])
+                    grid.append([length, eval(grids), eval(amount), visible, beam])
+                    tsnamelist.append(event[2].split()[1])
                 except:
                     ...
 
@@ -1229,7 +1314,18 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
                     msg.append([event[0], 'slur', cursor, cursor+duration, ystart, middle, yend])
                 except ValueError:
                     ...
-                
+            
+            # beam
+            if event[1] == 'beam_on':
+                msg.append([event[0], 'beam_on', cursor, hand])
+            if event[1] == 'beam_off':
+                msg.append([event[0], 'beam_off', cursor, hand])
+
+            # slur
+            if event[1] == 'slur_on':
+                msg.append([event[0], 'slur_on', cursor, hand])
+            if event[1] == 'slur_off':
+                msg.append([event[0], 'slur_off', cursor, hand])
 
             # bpm
             if event[1] == 'bpm':
@@ -1283,9 +1379,9 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
                         is_split = True
 
                 if is_split == False:
-                    msg.append([event[0], 'note', cursor, cursor+duration, event[2], hand, event[3]])
+                    msg.append([event[0], 'note', cursor, cursor+duration, event[2], hand])
                 elif is_split == True:
-                    msg.append([event[0], 'note', cursor, splitpoints[0], event[2], hand, event[3]])
+                    msg.append([event[0], 'note', cursor, splitpoints[0], event[2], hand])
                     dur = duration - diff(cursor, splitpoints[0])
                     for i in range(len(splitpoints)):
                         start = splitpoints[i]
@@ -1340,7 +1436,7 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
                 text = ''
                 xoffset = 0
                 yoffset = 0
-                size = 18
+                size = 0
                 if '%' in event[2]:
                     text = event[2].split('%')[0]
                     try: xoffset = eval(event[2].split('%')[1].split()[0])
@@ -1425,6 +1521,10 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
         msg.sort(key=lambda x: x[2])
 
 
+        # placing msgs in lists of beam grouping based on ~maes{} command
+        
+
+
         ##  placing messages in lists of 'lines' ##
         newlinepos = newline_pos_list(grid, mpline)
         msgs = msg
@@ -1498,7 +1598,10 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
 
     reading()
 
-
+    # for page in msg:
+    #     for line in page:
+    #         for note in line:
+    #             print(note)
 
 
 
@@ -1517,16 +1620,16 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
 
             for page in msg:
                 counter += 1
-                draw_papers(cursy, papercol)
+                #draw_papers(cursy, papercol)
                 if printcopyright == 1:
-                    canvas.create_text(marginx_start, cursy+20+paperheigth, text='page %s of %s | %s | %s' % (counter, len(msg), title, copyright), anchor='w', font=("Courier", 16, "normal"))
+                    canvas.create_text(marginx_start, cursy+20+paperheigth, text='page %s of %s | %s | %s' % (counter, len(msg), title, copyright), anchor='w', font=("Courier", fontsize, "normal"))
 
                 cursy += paperheigth + 50
 
             if printtitle == 1:
-                canvas.create_text(marginx_start, 90, text=title, anchor='w', font=("Courier", 20, "normal"))
+                canvas.create_text(marginx_start, 90, text=title, anchor='w', font=("Courier", fontsize, "normal"))
             if printcomposer == 1:
-                canvas.create_text(marginx_start+printareawidth-marginsx-marginsx, 90, text=composer, anchor='e', font=("Courier", 20, "normal"))
+                canvas.create_text(marginx_start+printareawidth-marginsx-marginsx, 90, text=composer, anchor='e', font=("Courier", fontsize, "normal"))
             #canvas.create_line(10, 400, 10, 400+pagespace[1])
 
         def draw_note_active():
@@ -1586,7 +1689,7 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
                             if measurenumbering == 1:
                                 bnum = pagenumbering[bcounter]
                                 if bnum > 0:
-                                    canvas.create_text(event_x_pos(note[2], lcounter)+5, cursy-20, text=bnum, anchor='w', font=('Courier', 14, 'normal'))
+                                    canvas.create_text(event_x_pos(note[2], lcounter)+5, cursy-20, text=bnum, anchor='w', font=('Courier', fontsize-6, 'normal'))
 
                         if note[1] == 'man_barline':
                             canvas.create_line(event_x_pos(note[2], lcounter), cursy, event_x_pos(note[2], lcounter), cursy+staffheight, width=2)
@@ -1646,7 +1749,7 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
                             start = event_x_pos(note[2], lcounter)
                             end = event_x_pos(note[2]+note[3], lcounter)
                             if note[5] == 1:
-                                canvas.create_text(start+15, cursy+staffheight+25, text=note[4], anchor='w', font=('Courier', 14, 'bold'))
+                                canvas.create_text(start+15, cursy+staffheight+25, text=note[4], anchor='w', font=('Courier', fontsize-4, 'bold'))
                                 canvas.create_line(start, cursy+staffheight, 
                                                     start, cursy+staffheight+40, 
                                                     start, cursy+staffheight+40, 
@@ -1655,19 +1758,31 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
                                                     end, cursy+staffheight, width=2)
 
                         if note[1] == 'textB':
-                            i=canvas.create_text(event_x_pos(note[2], lcounter)+10+note[4], cursy+staffheight+25+note[5], text=note[3], anchor='w', font=('Courier', note[6], 'bold'))
-                            r=canvas.create_rectangle(bbox_text(i),fill="white", outline='')
-                            canvas.tag_lower(r,i)
+                            if rendertype == 'normal':
+                                i=canvas.create_text(event_x_pos(note[2], lcounter)+10+note[4], cursy+staffheight+25+note[5], text=note[3], anchor='w', font=('Courier', fontsize+note[6], 'bold'), fill='white')
+                            if rendertype == 'export':
+                                i=canvas.create_text(event_x_pos(note[2], lcounter)+10+note[4], cursy+staffheight+25+note[5], text=note[3], anchor='w', font=('Courier', fontsize+note[6]-9, 'bold'), fill='white')
+                            b=bbox_text(i)
+                            r=canvas.create_rectangle(b,fill="white", outline='')
+                            canvas.create_text(event_x_pos(note[2], lcounter)+10+note[4], cursy+staffheight+25+note[5], text=note[3], anchor='w', font=('Courier', fontsize+note[6], 'bold'))
 
                         if note[1] == 'textI':
-                            i=canvas.create_text(event_x_pos(note[2], lcounter)+10+note[4], cursy+staffheight+25+note[5], text=note[3], anchor='w', font=('Courier', note[6], 'italic'))
-                            r=canvas.create_rectangle(bbox_text(i),fill="white", outline='')
-                            canvas.tag_lower(r,i)
+                            if rendertype == 'normal':
+                                i=canvas.create_text(event_x_pos(note[2], lcounter)+10+note[4], cursy+staffheight+25+note[5], text=note[3], anchor='w', font=('Courier', fontsize+note[6], 'italic'), fill='white')
+                            if rendertype == 'export':
+                                i=canvas.create_text(event_x_pos(note[2], lcounter)+10+note[4], cursy+staffheight+25+note[5], text=note[3], anchor='w', font=('Courier', fontsize+note[6]-9, 'italic'), fill='white')
+                            b=bbox_text(i)
+                            r=canvas.create_rectangle(b,fill="white", outline='')
+                            canvas.create_text(event_x_pos(note[2], lcounter)+10+note[4], cursy+staffheight+25+note[5], text=note[3], anchor='w', font=('Courier', fontsize+note[6], 'italic'))
 
                         if note[1] == 'text':
-                            i=canvas.create_text(event_x_pos(note[2], lcounter)+10+note[4], cursy+staffheight+25+note[5], text=note[3], anchor='w', font=('Courier', note[6], 'normal'))
-                            r=canvas.create_rectangle(bbox_text(i),fill="white", outline='')
-                            canvas.tag_lower(r,i)
+                            if rendertype == 'normal':
+                                i=canvas.create_text(event_x_pos(note[2], lcounter)+10+note[4], cursy+staffheight+25+note[5], text=note[3], anchor='w', font=('Courier', fontsize+note[6], 'normal'), fill='white')
+                            if rendertype == 'export':
+                                i=canvas.create_text(event_x_pos(note[2], lcounter)+10+note[4], cursy+staffheight+25+note[5], text=note[3], anchor='w', font=('Courier', fontsize+note[6]-9, 'normal'), fill='white')
+                            b=bbox_text(i)
+                            r=canvas.create_rectangle(b,fill="white", outline='')
+                            canvas.create_text(event_x_pos(note[2], lcounter)+10+note[4], cursy+staffheight+25+note[5], text=note[3], anchor='w', font=('Courier', fontsize+note[6], 'normal'))
 
                         if note[1] == 'bpm':
                             canvas.create_text(event_x_pos(note[2], lcounter)+10, cursy+staffheight+25, text='bpm = %s' % note[3], anchor='w', font='Courier 18')
@@ -1712,11 +1827,17 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
 
                 cursy = (paperheigth+50) * pcounter + 100
 
+        
 
         def draw_note_start():
             black = [2, 5, 7, 10, 12, 14, 17, 19, 22, 24, 26, 29, 31, 34, 36, 38, 41, 43, 46, 
             48, 50, 53, 55, 58, 60, 62, 65, 67, 70, 72, 74, 77, 79, 82, 84, 86]
-            white_dga = [6,11,13,18,23,25,30,35,37,42,47,49,54,59,61,66,71,73,78,83,85,88]
+            black_DFA = [2, 5, 7, 10, 14, 17, 19, 22, 26, 29, 31, 34, 38, 41, 43, 46, 
+            50, 53, 55, 58, 62, 65, 67, 70, 74, 77, 79, 82, 86]
+            black_G = [12, 24, 36, 48, 60, 72, 84]
+            white = [1,4,9,16,21,28,33,40,45,52,57,64,69,76,81,
+            6,11,13,18,23,25,30,35,37,42,47,49,54,59,61,66,71,73,78,
+            83,85,88,3,8,15,20,27,32,39,44,51,56,63,68,75,80,87]
             white_be = [3,8,15,20,27,32,39,44,51,56,63,68,75,80,87]
             white_cf = [1,4,9,16,21,28,33,40,45,52,57,64,69,76,81]
 
@@ -1741,14 +1862,14 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
                     old_y = 0
                     boundloose = 0
 
-                    for note in notelst:
+                    for note in notelst:                           
                         
                         if note[1] == 'note':
 
                             notex = event_x_pos(note[2], lcounter)
                             notey = note_y_pos(note[4], minnote, maxnote, cursy)
 
-                            if note[4] in white_dga:
+                            if note[4] in white:
 
                                 if note[5] == 'R':
                                     white_key_right_dga(notex, notey)
@@ -1757,44 +1878,13 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
                                 else:
                                     pass
 
-
-
-                            if note[4] in white_cf:
-
-                                if note[5] == 'R':
-                                    white_key_right_dga(notex, notey)
-                                elif note[5] == 'L':
-                                    white_key_left_dga(notex, notey)
-                                else:
-                                    pass
-
-                            if note[4] in white_be:
-
-                                if note[5] == 'R':
-                                    white_key_right_dga(notex, notey)
-                                elif note[5] == 'L':
-                                    white_key_left_dga(notex, notey)
-                                else:
-                                    pass
-
-                    # second for loop so the black keys are always on top of white (reversed racism)
+                    # second for loop so the black keys are always on top of white
                     for note in notelst:
                         
                         if note[1] == 'note':
 
                             notex = event_x_pos(note[2], lcounter)
                             notey = note_y_pos(note[4], minnote, maxnote, cursy)
-
-                            if note[4] in black:
-
-
-                                if note[5] == 'R':
-                                    black_key_right(notex, notey)
-                                elif note[5] == 'L':
-                                    black_key_left(notex, notey)
-                                else:
-                                    pass
-
 
                             # connect stems of the same hand if they start at the same time.
                             for stem in notelst:
@@ -1803,9 +1893,33 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
                                     stemy = note_y_pos(stem[4], minnote, maxnote, cursy)
                                     canvas.create_line(notex, currenty, notex, stemy, width=2)
 
+                            # write the black notes on top of the white
+                            if note[4] in black:
+                                if note[5] == 'R':
+                                    notetype = 0
+                                    for bkey in notelst:
+                                        if bkey[2] == note[2]:
+                                            if bkey[4] == note[4]+1 or bkey[4] == note[4]-1:
+                                                black_key_right_hlf(notex, notey)
+                                                notetype = 1
+                                    if not notetype == 1:
+                                        black_key_right(notex, notey)
+                                if note[5] == 'L':
+                                    notetype = 0
+                                    for bkey in notelst:
+                                        if bkey[2] == note[2]:
+                                            if bkey[4] == note[4]+1 or bkey[4] == note[4]-1:
+                                                black_key_left_hlf(notex, notey)
+                                                notetype = 1
+                                    if not notetype == 1:
+                                        black_key_left(notex, notey)
+
+                                    
 
 
-                            #### This piece of code writes beams but is currently not part of the notation.
+
+                            #### This piece of code adds beams to beamlist
+
                             # if boundloose == 1:
                             #     if note[5] == 'R':
                             #         canvas.create_line(old_x, old_y, notex, notey-20, width=3)
@@ -1868,10 +1982,12 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
 
                             if note[5] == 'R':
                                 if note[2] in barlineposlist:
-                                    canvas.create_line(notex, notey, notex, notey+10, fill='white', width=2)
+                                    canvas.create_line(notex, notey, notex, notey+7.5, fill='white', width=2)
+                                    canvas.create_line(notex, notey-20, notex, notey-25, fill='white', width=2)
                             elif note[5] == 'L':
                                 if note[2] in barlineposlist:
-                                    canvas.create_line(notex, notey, notex, notey-10, fill='white', width=2)
+                                    canvas.create_line(notex, notey, notex, notey-7.5, fill='white', width=2)
+                                    canvas.create_line(notex, notey+20, notex, notey+25, fill='white', width=2)
                             else:
                                 pass
 
@@ -2006,25 +2122,163 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
                 cursy = (paperheigth+50) * pcounter + 100
 
 
+        def draw_beam_r():
+            '''
+            This function prints a beam for all bounded notes seperated by unbounded notes.
+            '''
+            cursy = 90 + titlespace
+            pcounter = 0
+            lcounter = 0
+            beamlist_r = []
+            beam_r = ['dummy', 'beam_off', 'dummy', 'R']
+            helplist = []
+
+            for page in msg:
+                pcounter += 1
+
+                for line in page:
+                    lcounter += 1
+                    staffheight, minnote, maxnote = get_staff_height(line)
+
+                    for note in line:
+                        if note[1] == 'beam_on' and note[3] == 'R':
+                            beam_r = note
+                        if note[1] == 'beam_off' and note[3] == 'R':
+                            beam_r = note
+                        
+                        if beam_r[1] == 'beam_on' and beam_r[3] == 'R':
+                            if note[1] == 'note' and note[5] == 'R':
+                                helplist.append((event_x_pos(note[2], lcounter), note_y_pos(note[4], minnote, maxnote, cursy)))
+                        elif beam_r[1] == 'beam_off' and beam_r[3] == 'R':
+                            if helplist:
+                                #print(helplist, '!')
+                                beamlist_r.append(helplist)
+                                helplist = []
+
+                    if len(page) == 1:
+                        cursy += staffheight + systemspacing + (pagespace[pcounter-1] / (len(page)))
+                    elif pagespace[pcounter-1] < fillpagetreshold:
+                        cursy += staffheight + systemspacing + (pagespace[pcounter-1] / (len(page)-1))
+                    elif pagespace[pcounter-1] >= fillpagetreshold:
+                        cursy += staffheight + systemspacing
+
+                cursy = (paperheigth+50) * pcounter + 100
+
+            # prepare beamlist; splitting newline beams
+            beamlist_r = prepare_beams(beamlist_r)            
+
+            for beam in beamlist_r:
+                beam.sort(key=lambda i: i[1])
+                high = beam[0]
+                low = beam[-1]
+                beam.sort(key=lambda i: i[0])
+                first = beam[0]
+                last = beam[-1]
+                degree = 10
+                stemlength = 20
+                canvas.create_line(first[0], high[1]-stemlength,
+                                    last[0], high[1]-stemlength-degree,
+                                    width=4)
+                for i in beam:
+                    canvas.create_line(i[0], i[1], i[0], high[1]-stemlength-(degree*interpolation(first[0], last[0], i[0])), width=2)
+
+
+        def draw_beam_l():
+            '''
+            This function prints a beam for all bounded notes seperated by unbounded notes.
+            '''
+            cursy = 90 + titlespace
+            pcounter = 0
+            lcounter = 0
+            beamlist_r = []
+            beam_r = ['dummy', 'beam_off', 'dummy', 'L']
+            helplist = []
+
+            for page in msg:
+                pcounter += 1
+
+                for line in page:
+                    lcounter += 1
+                    staffheight, minnote, maxnote = get_staff_height(line)
+
+                    for note in line:
+                        if note[1] == 'beam_on' and note[3] == 'L':
+                            beam_r = note
+                        if note[1] == 'beam_off' and note[3] == 'L':
+                            beam_r = note
+                        
+                        if beam_r[1] == 'beam_on' and beam_r[3] == 'L':
+                            if note[1] == 'note' and note[5] == 'L':
+                                helplist.append((event_x_pos(note[2], lcounter), note_y_pos(note[4], minnote, maxnote, cursy)))
+                        elif beam_r[1] == 'beam_off' and beam_r[3] == 'L':
+                            if helplist:
+                                #print(helplist, '!')
+                                beamlist_r.append(helplist)
+                                helplist = []
+
+                    if len(page) == 1:
+                        cursy += staffheight + systemspacing + (pagespace[pcounter-1] / (len(page)))
+                    elif pagespace[pcounter-1] < fillpagetreshold:
+                        cursy += staffheight + systemspacing + (pagespace[pcounter-1] / (len(page)-1))
+                    elif pagespace[pcounter-1] >= fillpagetreshold:
+                        cursy += staffheight + systemspacing
+
+                cursy = (paperheigth+50) * pcounter + 100
+
+            # prepare beamlist; splitting newline beams
+            beamlist_r = prepare_beams(beamlist_r)            
+
+            for beam in beamlist_r:
+                beam.sort(key=lambda i: i[1])
+                high = beam[0]
+                low = beam[-1]
+                beam.sort(key=lambda i: i[0])
+                first = beam[0]
+                last = beam[-1]
+                degree = 10
+                stemlength = 20
+                canvas.create_line(first[0], low[1]+stemlength,
+                                    last[0], low[1]+stemlength+degree,
+                                    width=4)
+                for i in beam:
+                    canvas.create_line(i[0], i[1], i[0], low[1]+stemlength+(degree*interpolation(first[0], last[0], i[0])), width=2)
+
+
         # drawing order
         draw_paper()
         draw_note_active()
         draw_barlines()
+        draw_text()
         draw_hand_split_whitespace()
         draw_staff()
         draw_grid_lines()
         draw_note_start()
-        draw_slur()
-        draw_text()
+        draw_slur()      
+        draw_beam_r()
+        draw_beam_l()
         # draw_continuation_dot()
 
     drawing()
+    #canvas.create_text(10, 10, text='None')
     canvas.configure(scrollregion=bbox_offset(canvas.bbox("all")))
     return len(msg)
-    
-def renderkey(q='q'):
-    render('normal', papercolor)
 
+
+def autorender(q='q'):
+    '''Render is done in a thread. This thread function detects
+    if the text is edtited since the last render and doesnt start
+    a new rendering before it fineshed one.'''
+    while whileloops == 1:
+        time.sleep(0.1)
+        if textw.edit_modified() == True:
+            time.sleep(0.2)
+            try: render('normal', papercolor)
+            except:
+                ...
+            textw.edit_modified(False)
+        
+
+threading.Thread(target=autorender).start()
 
 
 
@@ -2054,7 +2308,6 @@ def exportPS():
             canvas.postscript(file=f"{f.name}_p{counter}.ps", colormode='gray', x=40, y=50+(export*(paperheigth+50)), width=paperwidth, height=paperheigth, rotate=False)
 
         #os.remove(f.name)
-        renderkey()
 
     else:
 
@@ -2093,7 +2346,6 @@ def exportPDF():
             process.wait()
             # for x in pslist:
             #     os.remove(x)
-            renderkey()
             return
         else:
             return
@@ -2133,57 +2385,60 @@ def exportPDF():
 # MIDI input
 #------------
 
-midi_record_toggle = 0
-def midi_toggle(q='q'):
-    global midi_record_toggle
-    if midi_record_toggle == 1:
-        midi_record_toggle = 0
-        canvas.configure(bg=_bg)
-        return 0
-    elif midi_record_toggle == 0:
-        midi_record_toggle = 1
-        canvas.configure(bg='brown')
-        return 1
+# midi_record_toggle = 0
+# def midi_toggle(q='q'):
+#     global midi_record_toggle
+#     if midi_record_toggle == 1:
+#         midi_record_toggle = 0
+#         canvas.configure(bg=papercolor)
+#         return 0
+#     elif midi_record_toggle == 0:
+#         midi_record_toggle = 1
+#         canvas.configure(bg='brown')
+#         return 1
 
-def midi_input():
+# def midi_input():
 
-    dev = rtmidi.RtMidiIn()
+#     dev = rtmidi.RtMidiIn()
 
-    class Collector(threading.Thread):
-        def __init__(self, device, port):
-            threading.Thread.__init__(self)
-            self.setDaemon(True)
-            self.port = port
-            self.portName = device.getPortName(port)
-            self.device = device
-            self.quit = False
+#     class Collector(threading.Thread):
+#         def __init__(self, device, port):
+#             threading.Thread.__init__(self)
+#             self.setDaemon(True)
+#             self.port = port
+#             self.portName = device.getPortName(port)
+#             self.device = device
+#             self.quit = False
 
-        def run(self):
-            self.device.openPort(self.port)
-            self.device.ignoreTypes(True, False, True)
-            while True:
-                if midiswitch == 0:
-                    print('CLOSING MIDI PORT...')
-                    return
-                msg = self.device.getMessage(2500)
-                if msg:
-                    if msg.isNoteOn():
-                        if midi_record_toggle == 1:
-                            note = msg.getNoteNumber() - 20
-                            if shiftkey == 0:
-                                textw.insert(textw.index(INSERT), number2pitch[note])
-                            elif shiftkey == 1:
-                                textw.insert(textw.index(INSERT), '_'+number2pitch[note])
-                            renderkey()
+#         def run(self):
+#             self.device.openPort(self.port)
+#             self.device.ignoreTypes(True, False, True)
+#             while True:
+#                 if whileloops == 0:
+#                     print('CLOSING MIDI PORT...')
+#                     return
+#                 msg = self.device.getMessage(2500)
+#                 if msg:
+#                     if msg.isNoteOn():
+#                         if midi_record_toggle == 1:
+#                             note = msg.getNoteNumber() - 20
+#                             if shiftkey == 0:
+#                                 textw.insert(textw.index(INSERT), number2pitch[note])
+#                             elif shiftkey == 1:
+#                                 textw.insert(textw.index(INSERT), '_'+number2pitch[note])
+#                             autorender()
     
-    for i in range(dev.getPortCount()):
-        device = rtmidi.RtMidiIn()
-        print('OPENING',dev.getPortName(i))
-        collector = Collector(device, i)
-        collector.start()
+#     for i in range(dev.getPortCount()):
+#         device = rtmidi.RtMidiIn()
+#         print('OPENING',dev.getPortName(i))
+#         collector = Collector(device, i)
+#         collector.start()
 
-if platform.system() == 'Linux':
-    threading.Thread(target=midi_input).start()
+# if platform.system() == 'Linux':
+#     threading.Thread(target=midi_input).start()
+
+
+
 
 
 
@@ -2242,11 +2497,9 @@ def mouse_note_input(event):
     if note <= 88:
         if shiftkey == 0:
             textw.insert(textw.index(INSERT), number2pitch[note])
-            renderkey()
             return
         elif shiftkey == 1:
             textw.insert(textw.index(INSERT), '_'+number2pitch[note])
-            renderkey()
             return
 
 
@@ -2319,7 +2572,7 @@ fileMenu.add_separator()
 
 fileMenu.add_command(label="horizontal/vertical", underline=0, command=switch_orientation)
 fileMenu.add_command(label="fullscreen/windowed (F11)", underline=0, command=menufullscreen)
-fileMenu.add_command(label="toggle midi input (esc)", underline=0, command=midi_toggle)
+# fileMenu.add_command(label="toggle midi input (esc)", underline=0, command=midi_toggle)
 
 fileMenu.add_separator()
 
@@ -2335,7 +2588,7 @@ menubar.add_cascade(label="menu", underline=0, menu=fileMenu)
 
 
 def keypress(event):
-    renderkey()
+    textw.edit_modified(True)
     global shiftkey
     if event.keysym == 'Shift_L' or event.keysym == 'Shift_R':
         shiftkey = 1
@@ -2352,7 +2605,7 @@ def keyrelease(event):
 
 new_file()
 autosave()
-root.bind('<Escape>', midi_toggle)
+# root.bind('<Escape>', midi_toggle)
 root.bind('<F11>', fullscreen)
 root.bind('<KeyPress>', keypress)
 root.bind('<KeyRelease>', keyrelease)
