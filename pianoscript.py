@@ -192,7 +192,7 @@ _1
 
 
 ~hand{L}
-_1 ''' % datetime.datetime.now().year
+_1 Q<c4d4e4>''' % datetime.datetime.now().year
 
 
 file = textw.get('1.0', END + '-1c')
@@ -468,25 +468,25 @@ def draw_staff_lines(y, mn, mx):
 
     def draw3Line(y):
         x = marginx_start
-        canvas.create_line(x, y, x+(paperwidth-marginsx-marginsx), y, width=2)
-        canvas.create_line(x, y+10, x+(paperwidth-marginsx-marginsx), y+10, width=2)
-        canvas.create_line(x, y+20, x+(paperwidth-marginsx-marginsx), y+20, width=2)
+        canvas.create_line(x, y, x+(paperwidth-marginsx-marginsx), y, width=2, capstyle='round')
+        canvas.create_line(x, y+10, x+(paperwidth-marginsx-marginsx), y+10, width=2, capstyle='round')
+        canvas.create_line(x, y+20, x+(paperwidth-marginsx-marginsx), y+20, width=2, capstyle='round')
 
 
     def draw2Line(y):
         x = marginx_start
-        canvas.create_line(x, y, x+(paperwidth-marginsx-marginsx), y, width=0.5)
-        canvas.create_line(x, y+10, x+(paperwidth-marginsx-marginsx), y+10, width=0.5)
+        canvas.create_line(x, y, x+(paperwidth-marginsx-marginsx), y, width=0.5, capstyle='round')
+        canvas.create_line(x, y+10, x+(paperwidth-marginsx-marginsx), y+10, width=0.5, capstyle='round')
 
 
     def drawDash2Line(y):
         x = marginx_start
-        if platform.system() == 'Linux':
-            canvas.create_line(x, y, x+(paperwidth-marginsx-marginsx), y, width=1, dash=(6,6))
-            canvas.create_line(x, y+10, x+(paperwidth-marginsx-marginsx), y+10, width=1, dash=(6,6))
+        if platform.system() == 'Linux' or platform.system() == 'Darwin':
+            canvas.create_line(x, y, x+(paperwidth-marginsx-marginsx), y, width=1, dash=(6,6), capstyle='round')
+            canvas.create_line(x, y+10, x+(paperwidth-marginsx-marginsx), y+10, width=1, dash=(6,6), capstyle='round')
         elif platform.system() == 'Windows':
-            canvas.create_line(x, y, x+(paperwidth-marginsx-marginsx), y, width=1, dash=4)
-            canvas.create_line(x, y+10, x+(paperwidth-marginsx-marginsx), y+10, width=1, dash=4)
+            canvas.create_line(x, y, x+(paperwidth-marginsx-marginsx), y, width=1, dash=4, capstyle='round')
+            canvas.create_line(x, y+10, x+(paperwidth-marginsx-marginsx), y+10, width=1, dash=4, capstyle='round')
 
     keyline = 0
     staffheight = 0
@@ -587,7 +587,7 @@ def black_key_right(x, y):  # center coordinates, radius
     y0 = y - 5
     x1 = x + 5
     y1 = y + 5
-    canvas.create_line(x0,y-20, x0,y, width=2)
+    canvas.create_line(x0,y-20, x0,y, width=2, capstyle='round')
     canvas.create_oval(x0, y0, x1, y1, outline='black', fill='black')
 
 
@@ -596,7 +596,7 @@ def black_key_right_hlf(x, y):  # center coordinates, radius
     y0 = y - 5
     x1 = x + 5 - 5
     y1 = y + 5
-    canvas.create_line(x0+5,y-20, x0+5,y, width=2)
+    canvas.create_line(x0+5,y-20, x0+5,y, width=2, capstyle='round')
     canvas.create_oval(x0, y0, x1, y1, outline='black', fill='black')
 
 
@@ -605,7 +605,7 @@ def white_key_right_dga(x, y):  # center coordinates, radius
     y0 = y - 5
     x1 = x + 10
     y1 = y + 5
-    canvas.create_line(x0,y-20, x0,y, width=2)
+    canvas.create_line(x0,y-20, x0,y, width=2, capstyle='round')
     canvas.create_oval(x0, y0, x1, y1, outline="black", width=2, fill='white')
 
 
@@ -614,7 +614,7 @@ def white_key_right_cefb(x, y):  # center coordinates, radius
     y0 = y - 3.5
     x1 = x + 10
     y1 = y + 3.5
-    canvas.create_line(x0,y-20, x0,y, width=2)
+    canvas.create_line(x0,y-20, x0,y, width=2, capstyle='round')
     canvas.create_oval(x0, y0, x1, y1, outline="black", width=2, fill='white')
 
 
@@ -623,7 +623,7 @@ def black_key_left(x, y):  # center coordinates, radius
     y0 = y - 5
     x1 = x + 5
     y1 = y + 5
-    canvas.create_line(x0,y+20, x0,y, width=2)
+    canvas.create_line(x0,y+20, x0,y, width=2, capstyle='round')
     canvas.create_oval(x0, y0, x1, y1, outline='black', fill='black') # normal
     canvas.create_oval(x0+3, y0+4, x1-3, y1-4, outline='white', fill='white') # point
     #canvas.create_polygon(x, y+5, x+10, y, x, y-5, outline='black', fill='black') # triangle
@@ -636,7 +636,7 @@ def black_key_left_hlf(x, y):  # center coordinates, radius
     y0 = y - 5
     x1 = x + 5 - 5
     y1 = y + 5
-    canvas.create_line(x0+5,y+20, x0+5,y, width=2)
+    canvas.create_line(x0+5,y+20, x0+5,y, width=2, capstyle='round')
     canvas.create_oval(x0, y0, x1, y1, outline='black', fill='black') # normal
     canvas.create_oval(x0+3, y0+4, x1-3, y1-4, outline='white', fill='white') # point
     # canvas.create_polygon(x, y, x+5, y+5, x+10, y, x+5, y-5, outline='black', fill='black') # triangle
@@ -648,7 +648,7 @@ def white_key_left_dga(x, y):  # center coordinates, radius
     y0 = y - 5
     x1 = x + 10
     y1 = y + 5
-    canvas.create_line(x0,y+20, x0,y, width=2)
+    canvas.create_line(x0,y+20, x0,y, width=2, capstyle='round')
     canvas.create_oval(x0, y0, x1, y1, outline="black", width=2, fill='white')
     canvas.create_oval(x0+4, y0+4, x1-4, y1-4, outline="", fill='black') # point
     #canvas.create_polygon(x, y, x+5, y+5, x+10, y, x+5, y-5, outline="black", width=2, fill='white') # diamond
@@ -661,7 +661,7 @@ def white_key_left_cefb(x, y):  # center coordinates, radius
     y0 = y - 3.5
     x1 = x + 10
     y1 = y + 3.5
-    canvas.create_line(x0,y+20, x0,y, width=2)
+    canvas.create_line(x0,y+20, x0,y, width=2, capstyle='round')
     canvas.create_oval(x0, y0, x1, y1, outline="black", width=2, fill='white')
     canvas.create_oval(x0+4, y0+4.5, x1-4, y1-4.5, outline="", fill='black') # point
     #canvas.create_polygon(x, y, x+5, y+3.5, x+10, y, x+5, y-3.5, outline="black", width=2, fill='white') # diamond
@@ -733,6 +733,7 @@ def note_active_gradient(x0, x1, y, linenr):
         color = "#%4.4x%4.4x%4.4x" % (nr,ng,nb)
         canvas.create_line(x0+i,y-5,x0+i,y+5, fill=color)
     canvas.create_line(x1, y-5, x1, y+5, width=2)
+    canvas.create_line(x0, y-5, x0, y+5, width=2, fill='white')
 
 
 def note_active_grey(x0, x1, y, linenr):
@@ -741,6 +742,7 @@ def note_active_grey(x0, x1, y, linenr):
     x1 = event_x_pos(x1, linenr)
     canvas.create_rectangle(x0, y-5, x1, y+5, fill=midinotecolor, outline='')#e3e3e3
     canvas.create_line(x1, y-5, x1, y+5, width=2)
+    canvas.create_line(x0, y-5, x0, y+5, width=2, fill=midinotecolor)
 
 
 def event_x_pos(pos, linenr):
@@ -1132,16 +1134,47 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
         # read music
         musicstring = prepare_file(file, '~', '}', ' ')
         index = -1
+        bracket = 0
         for sym in musicstring:
             index += 1
+            # antisymetric rhythm
+            if sym == '<':
+                bracket = 1
+                ind2 = index
+                antisymetric = []
+                for i in musicstring[index+1:]: # reading antisemitric figure
+                    ind2 += 1
+                    if i in ['a', 'A', 'b', 'c', 'C', 'd', 'D', 'e', 'f', 'F', 'g', 'G', 'r', '=', '_']:
+                        if i == 'r':
+                            antisymetric.append(0)
+                            continue
+                        elif i == '=':
+                            antisymetric.append(-1)
+                            continue
+                        elif i == '_':
+                            antisymetric.append(-2)
+                        elif musicstring[ind2+1] in ['0', '1', '2', '3', '4', '5', '6', '7', '8']:
+                            print('!!!')
+                            note = string2pitch(musicstring[ind2]+musicstring[ind2+1])
+                            antisymetric.append(note)
+                    elif i == '>':
+                        msgprep.append([index, 'antisym', antisymetric])
+                        print([index, 'antisym', antisymetric])
+                        break
+                continue
+            if sym == '>':
+                bracket = 0
+            if bracket == 1:
+                continue
+
             # note
-            if sym in ['a', 'A', 'b', 'c', 'C', 'd', 'D', 'e', 'f', 'F', 'g', 'G', 'q', 'w', 'x', 'y', 'z']:
+            if sym in ['a', 'A', 'b', 'c', 'C', 'd', 'D', 'e', 'f', 'F', 'g', 'G']:
                 if musicstring[index+1] in ['0', '1', '2', '3', '4', '5', '6', '7', '8']:
                     msgprep.append([index, 'note', string2pitch(musicstring[index]+musicstring[index+1])])
 
             # split (gets deleted from program)
             if sym == '=':
-                msgprep.append([index, 'split'])
+                msgprep.append([index, 'equal'])
 
             # cursor
             if sym == '_':
@@ -1227,6 +1260,38 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
         duration = 256
         cursor = 0
         for event in msgprep:
+            # antisymetric rhythm
+            if event[1] == 'antisym':
+                try:    
+                    div = 0
+                    for i in event[2]:
+                        if i == -2:
+                            div -= 1
+                        else:
+                            div += 1
+                    dur = duration / div
+                    pos = cursor
+                    last = 0
+                    for note in event[2]:
+                        if note == 0:
+                            pos += dur
+                        elif note == -1:
+                            if last == 0:
+                                pos += dur
+                            else:
+                               msg.append([event[0], 'equal', pos, pos+dur, last, hand])
+                               pos += dur 
+                        elif note == -2:
+                            div -= 1
+                            pos -= dur
+                        else:
+                            msg.append([event[0], 'note', pos, pos+dur, note, hand])
+                            pos += dur
+                            last = note
+                    cursor += duration
+                except:
+                    ...
+
             # titles
             if event[1] == 'title':
                 title = event[2]
@@ -1317,9 +1382,11 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
             
             # beam
             if event[1] == 'beam_on':
-                msg.append([event[0], 'beam_on', cursor, hand])
+                msg.append([event[0], 'beam_on', round(cursor), hand])
+                print([event[0], 'beam_on', round(cursor), hand])
             if event[1] == 'beam_off':
-                msg.append([event[0], 'beam_off', cursor, hand])
+                msg.append([event[0], 'beam_off', round(cursor)-0.00000001, hand])
+                print([event[0], 'beam_off', round(cursor), hand])
 
             # slur
             if event[1] == 'slur_on':
@@ -1401,7 +1468,7 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
                 cursor += duration
 
             # split
-            if event[1] == 'split':
+            if event[1] == 'equal':
                 notes = []
                 time = 0
                 for i in reversed(msg):
@@ -1413,7 +1480,7 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
                     elif i[1] == 'note' and i[2] != time:
                         break
                 for i in notes:
-                    msg.append([event[0], 'split', cursor, cursor+duration, i])
+                    msg.append([event[0], 'equal', cursor, cursor+duration, i])
                 cursor += duration
 
             # bar (all bartypes)
@@ -1649,12 +1716,16 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
                             if note[1] == 'split':
                                 note_active_grey(note[2], note[3], note_y_pos(note[4], minnote, maxnote, cursy), lcounter)
                                 continuation_dot(event_x_pos(note[2], lcounter)+5, note_y_pos(note[4], minnote, maxnote, cursy))
+                            if note[1] == 'equal':
+                                note_active_grey(note[2], note[3], note_y_pos(note[4], minnote, maxnote, cursy), lcounter)
                         elif rendertype == 'export':
                             if note[1] == 'note':
                                 note_active_gradient(note[2], note[3], note_y_pos(note[4], minnote, maxnote, cursy), lcounter)
                             if note[1] == 'split':
                                 note_active_gradient(note[2], note[3], note_y_pos(note[4], minnote, maxnote, cursy), lcounter)
                                 continuation_dot(event_x_pos(note[2], lcounter)+5, note_y_pos(note[4], minnote, maxnote, cursy))
+                            if note[1] == 'equal':
+                                note_active_grey(note[2], note[3], note_y_pos(note[4], minnote, maxnote, cursy), lcounter)
 
                     if len(page) == 1:
                         cursy += staffheight + systemspacing + (pagespace[pcounter-1] / (len(page)))
@@ -1685,38 +1756,38 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
 
                         if note[1] == 'barline':
                             bcounter += 1
-                            canvas.create_line(event_x_pos(note[2], lcounter), cursy, event_x_pos(note[2], lcounter), cursy+staffheight, width=2)
+                            canvas.create_line(event_x_pos(note[2], lcounter), cursy, event_x_pos(note[2], lcounter), cursy+staffheight, width=2, capstyle='round')
                             if measurenumbering == 1:
                                 bnum = pagenumbering[bcounter]
                                 if bnum > 0:
                                     canvas.create_text(event_x_pos(note[2], lcounter)+5, cursy-20, text=bnum, anchor='w', font=('Courier', fontsize-6, 'normal'))
 
                         if note[1] == 'man_barline':
-                            canvas.create_line(event_x_pos(note[2], lcounter), cursy, event_x_pos(note[2], lcounter), cursy+staffheight, width=2)
+                            canvas.create_line(event_x_pos(note[2], lcounter), cursy, event_x_pos(note[2], lcounter), cursy+staffheight, width=2, capstyle='round')
                         
                         if note[1] == 'bgn_rpt':
-                            canvas.create_line(event_x_pos(note[2], lcounter), cursy, event_x_pos(note[2], lcounter), cursy+staffheight+40, width=2)
+                            canvas.create_line(event_x_pos(note[2], lcounter), cursy, event_x_pos(note[2], lcounter), cursy+staffheight+40, width=2, capstyle='round')
                             repeat_dot(event_x_pos(note[2], lcounter)+5, cursy+staffheight+15)
                             repeat_dot(event_x_pos(note[2], lcounter)+5, cursy+staffheight+30)
 
                         if note[1] == 'end_rpt':
-                            canvas.create_line(event_x_pos(note[2], lcounter), cursy, event_x_pos(note[2], lcounter), cursy+staffheight+40, width=2)
+                            canvas.create_line(event_x_pos(note[2], lcounter), cursy, event_x_pos(note[2], lcounter), cursy+staffheight+40, width=2, capstyle='round')
                             repeat_dot(event_x_pos(note[2], lcounter)-12.5, cursy+staffheight+15)
                             repeat_dot(event_x_pos(note[2], lcounter)-12.5, cursy+staffheight+30)
 
                         if note[1] == 'bgn_hook':
                             canvas.create_line(event_x_pos(note[2], lcounter), cursy, event_x_pos(note[2], lcounter), cursy+staffheight+40,
-                                event_x_pos(note[2], lcounter), cursy+staffheight+40, event_x_pos(note[2], lcounter)+80, cursy+staffheight+40, width=2)
+                                event_x_pos(note[2], lcounter), cursy+staffheight+40, event_x_pos(note[2], lcounter)+80, cursy+staffheight+40, width=2, capstyle='round')
 
                         if note[1] == 'end_hook':
                             canvas.create_line(event_x_pos(note[2], lcounter), cursy, event_x_pos(note[2], lcounter), cursy+staffheight+40,
-                                event_x_pos(note[2], lcounter), cursy+staffheight+40, event_x_pos(note[2], lcounter)-80, cursy+staffheight+40, width=2)
+                                event_x_pos(note[2], lcounter), cursy+staffheight+40, event_x_pos(note[2], lcounter)-80, cursy+staffheight+40, width=2, capstyle='round')
 
 
-                    canvas.create_line(marginx_start+(paperwidth-marginsx-marginsx), cursy, marginx_start+(paperwidth-marginsx-marginsx), cursy+staffheight, width=2)
+                    canvas.create_line(marginx_start+(paperwidth-marginsx-marginsx), cursy, marginx_start+(paperwidth-marginsx-marginsx), cursy+staffheight, width=2, capstyle='round')
 
                     if lcounter == len(newline_pos_list(grid, mpline)):
-                        canvas.create_line(marginx_start+(paperwidth-marginsx-marginsx), cursy, marginx_start+(paperwidth-marginsx-marginsx), cursy+staffheight, width=5)
+                        canvas.create_line(marginx_start+(paperwidth-marginsx-marginsx), cursy, marginx_start+(paperwidth-marginsx-marginsx), cursy+staffheight, width=5, capstyle='round')
 
 
                     if len(page) == 1:
@@ -2178,9 +2249,14 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
                 stemlength = 20
                 canvas.create_line(first[0], high[1]-stemlength,
                                     last[0], high[1]-stemlength-degree,
-                                    width=4)
+                                    width=4, capstyle='round')
                 for i in beam:
-                    canvas.create_line(i[0], i[1], i[0], high[1]-stemlength-(degree*interpolation(first[0], last[0], i[0])), width=2)
+                    canvas.create_line(i[0], 
+                                        i[1], 
+                                        i[0], 
+                                        high[1]-stemlength-(degree*interpolation(first[0], last[0], i[0])), 
+                                        width=2, 
+                                        capstyle='round')
 
 
         def draw_beam_l():
@@ -2239,9 +2315,14 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
                 stemlength = 20
                 canvas.create_line(first[0], low[1]+stemlength,
                                     last[0], low[1]+stemlength+degree,
-                                    width=4)
+                                    width=4, capstyle='round')
                 for i in beam:
-                    canvas.create_line(i[0], i[1], i[0], low[1]+stemlength+(degree*interpolation(first[0], last[0], i[0])), width=2)
+                    canvas.create_line(i[0], 
+                                        i[1], 
+                                        i[0], 
+                                        low[1]+stemlength+(degree*interpolation(first[0], last[0], i[0])), 
+                                        width=2, 
+                                        capstyle='round')
 
 
         # drawing order
@@ -2271,7 +2352,6 @@ def autorender(q='q'):
     while whileloops == 1:
         time.sleep(0.1)
         if textw.edit_modified() == True:
-            time.sleep(0.2)
             try: render('normal', papercolor)
             except:
                 ...
