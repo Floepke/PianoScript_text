@@ -1028,7 +1028,7 @@ marginsy = 60
 printareawidth = paperwidth - (marginsx*2)
 printareaheight = paperheigth - (marginsy*2)
 marginx_start = 40 + marginsx
-number2pitch = {1: 'a0', 2: 'z0', 3: 'b0',
+number2pitch = {1: 'a0', 2: 'A0', 3: 'b0',
      4: 'c1', 5: 'C1', 6: 'd1', 7: 'D1', 8: 'e1', 9: 'f1', 10: 'F1', 11: 'g1', 12: 'G1', 13: 'a1', 14: 'A1', 15: 'b1', 
      16: 'c2', 17: 'C2', 18: 'd2', 19: 'D2', 20: 'e2', 21: 'f2', 22: 'F2', 23: 'g2', 24: 'G2', 25: 'a2', 26: 'A2', 27: 'b2', 
      28: 'c3', 29: 'C3', 30: 'd3', 31: 'D3', 32: 'e3', 33: 'f3', 34: 'F3', 35: 'g3', 36: 'G3', 37: 'a3', 38: 'A3', 39: 'b3', 
@@ -1154,12 +1154,10 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
                         elif i == '_':
                             antisymetric.append(-2)
                         elif musicstring[ind2+1] in ['0', '1', '2', '3', '4', '5', '6', '7', '8']:
-                            print('!!!')
                             note = string2pitch(musicstring[ind2]+musicstring[ind2+1])
                             antisymetric.append(note)
                     elif i == '>':
                         msgprep.append([index, 'antisym', antisymetric])
-                        print([index, 'antisym', antisymetric])
                         break
                 continue
             if sym == '>':
@@ -1383,10 +1381,10 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
             # beam
             if event[1] == 'beam_on':
                 msg.append([event[0], 'beam_on', round(cursor), hand])
-                print([event[0], 'beam_on', round(cursor), hand])
+                
             if event[1] == 'beam_off':
                 msg.append([event[0], 'beam_off', round(cursor)-0.00000001, hand])
-                print([event[0], 'beam_off', round(cursor), hand])
+                
 
             # slur
             if event[1] == 'slur_on':
@@ -2128,7 +2126,7 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
                     for slur in line:
                         if slur[1] == 'slur':
                             xpos2 = event_x_pos(slur[2], lcounter) + (diff(event_x_pos(slur[2], lcounter), event_x_pos(slur[3], lcounter)) / 2)
-                            canvas.create_line(event_x_pos(slur[2], lcounter), cursy-20+slur[4], xpos2, cursy-20+slur[5], event_x_pos(slur[3], lcounter), cursy-20+slur[6], smooth=1, width=2.5)
+                            canvas.create_line(event_x_pos(slur[2], lcounter), cursy-20+slur[4], xpos2, cursy-20+slur[5], event_x_pos(slur[3], lcounter), cursy-20+slur[6], smooth=1, width=2.5, capstyle='round')
 
                     if len(page) == 1:
                         cursy += staffheight + systemspacing + (pagespace[pcounter-1] / (len(page)))
@@ -2334,10 +2332,10 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
         draw_staff()
         draw_grid_lines()
         draw_note_start()
-        draw_slur()      
+        draw_slur()
         draw_beam_r()
         draw_beam_l()
-        # draw_continuation_dot()
+        #draw_continuation_dot()
 
     drawing()
     #canvas.create_text(10, 10, text='None')
@@ -2560,8 +2558,10 @@ def draw_piano_keyboard(x=0, y=0):
         i += 1
         if i in black:
             piano.create_rectangle(x,y,x+keywidth,y+(keylength/3*2), width=2, fill='black', outline='')
+            piano.create_text(x+(keywidth/2),10,text=number2pitch[i],anchor='c',fill='white')
             x += keywidth
         else:
+            piano.create_text(x+(keywidth/2),keylength-10,text=number2pitch[i],anchor='c',fill='black')
             x += keywidth
 
 draw_piano_keyboard()
