@@ -1,3 +1,4 @@
+![Screenshot](https://github.com/Floepke/PianoScript/blob/master/wiki%20images/Screenshot_pianoscript.png)
 # PianoScript
 PianoScript is a music notation which is displaying a midifile in such way that it is readable as music notation. You can print the midifile to learn to play it on the piano. PianoScript is based on the klavarskribo music notation but has multiple differences. In these days many people are using midifiles to learn to play a piece on the piano. For example think about synthesia(the pianoroll on youtube). And I am one of these people...
 
