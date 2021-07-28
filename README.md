@@ -3,11 +3,11 @@ PianoScript is a music notation which is displaying a midifile in such way that 
 
 
 ### PianoScript in a nutshell
-PianoScript is based on klavarskribo(google it if you wanna know how it looks). Unlike klavarskribo PianoScript is read from left to right and uses greyscale rectangles to point out the rhythm. The staff is basically a miniature piano keyboard drawn as staff. The lines do mean the black keys, it are groups of two and three lines. On top and in between are the piano notes written as circles. The fill of the note is the same as the color of the piano key which makes after a few hours of practice much sense. The rhythmic notation works like a piano-roll editor in distances. The greyscale grid tells you how many beats there are and there are barlines. 
+PianoScript is based on klavarskribo(google it if you wanna know how it looks). Unlike klavarskribo PianoScript is read from left to right and uses greyscale midi-style-notes to point out the rhythm. The staff is basically a miniature piano keyboard drawn as staff. The lines do mean the black keys, it are groups of two and three lines. On top and in between are the piano notes written as circles. The fill of the note is the same as the color of the piano key which makes after a few hours of practice much sense. The rhythmic notation works like a piano-roll editor in distances. The dashed grid tells you how many beats there are in one measure which are grouped using normal barlines. 
 
 ### advantages
 Advantages:
 * You don't have to learn about sharps and flats and still you can play a piece written in c#
 * Visual design
 * There is only one way to write a note so that makes it possible to convert from midi correctly.
-* there is no key signature because the staff is twelve tone
+* There is no key signature because the staff is twelve tone
