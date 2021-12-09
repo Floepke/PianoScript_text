@@ -22,7 +22,7 @@ from shutil import which
 
 #colors
 _bg = '#aaaaaa' #d9d9d9
-papercolor = '#fefff0'
+papercolor = '#555555'
 
 
 # Root
@@ -172,15 +172,15 @@ default = '''~shadeofgrey{70} //0=black; 100=white
 
 
 starttemplate = '''//titles:
-~title{music title}
-~composer{music composer}
-~copyright{copyrights reserved %s}
+~title{Tutorial}
+~composer{PianoScript}
+~copyright{copyrights reserved 2021}
 
 //grid:
-~meas{36 4/4 4 2}
+~meas{4 4/4 4}
 
 //settings:
-~mpsystem{5}
+~mpsystem{4}
 ~papersize{150}
 ~systemspace{90}
 ~shadeofgrey{70}
@@ -192,7 +192,7 @@ _1
 
 
 ~hand{L}
-_1 Q<c4d4e4>''' % datetime.datetime.now().year
+_1 ''' # % datetime.datetime.now().year
 
 
 file = textw.get('1.0', END + '-1c')
@@ -360,30 +360,50 @@ def duration_converter(string): # converts duration string to length in 'pianoti
     return dur
 
 
-def string2pitch(string):
-    '''dictionary that gives back the piano-key-number.'''
+def string2pitch(string, transp):
+    '''dictionary that gives back the piano-key-number.
+    It applies also global transpose'''
     pitchdict = {
     # Oct 0
-    'a0':1, 'A0':2, 'z0':2, 'b0':3,
+    'a0':1, 'A0':2, 'b0':3,
     # Oct 1
-    'c1':4, 'C1':5, 'q1':5, 'd1':6, 'D1':7, 'w1':7, 'e1':8, 'f1':9, 'F1':10, 'x1':10, 'g1':11, 'G1':12, 'y1':12, 'a1':13, 'A1':14, 'z1':14, 'b1':15,
+    'c1':4, 'C1':5, 'd1':6, 'D1':7, 'e1':8, 'f1':9, 'F1':10, 'g1':11, 'G1':12, 'a1':13, 'A1':14, 'b1':15,
     # Oct 2
-    'c2':16, 'C2':17, 'q2':17, 'd2':18, 'D2':19, 'w2':19, 'e2':20, 'f2':21, 'F2':22, 'x2':22, 'g2':23, 'G2':24, 'y2':24, 'a2':25, 'A2':26, 'z2':26, 'b2':27,
+    'c2':16, 'C2':17, 'd2':18, 'D2':19, 'e2':20, 'f2':21, 'F2':22, 'g2':23, 'G2':24, 'a2':25, 'A2':26, 'b2':27,
     # Oct 3
-    'c3':28, 'C3':29, 'q3':29, 'd3':30, 'D3':31, 'w3':31, 'e3':32, 'f3':33, 'F3':34, 'x3':34, 'g3':35, 'G3':36, 'y3':36, 'a3':37, 'A3':38, 'z3':38, 'b3':39,
+    'c3':28, 'C3':29, 'd3':30, 'D3':31, 'e3':32, 'f3':33, 'F3':34, 'g3':35, 'G3':36, 'a3':37, 'A3':38, 'b3':39,
     # Oct 4
-    'c4':40, 'C4':41, 'q4':41, 'd4':42, 'D4':43, 'w4':43, 'e4':44, 'f4':45, 'F4':46, 'x4':46, 'g4':47, 'G4':48, 'y4':48, 'a4':49, 'A4':50, 'z4':50, 'b4':51,
+    'c4':40, 'C4':41, 'd4':42, 'D4':43, 'e4':44, 'f4':45, 'F4':46, 'g4':47, 'G4':48, 'a4':49, 'A4':50, 'b4':51,
     # Oct 5
-    'c5':52, 'C5':53, 'q5':53, 'd5':54, 'D5':55, 'w5':55, 'e5':56, 'f5':57, 'F5':58, 'x5':58, 'g5':59, 'G5':60, 'y5':60, 'a5':61, 'A5':62, 'z5':62, 'b5':63,
+    'c5':52, 'C5':53, 'd5':54, 'D5':55, 'e5':56, 'f5':57, 'F5':58, 'g5':59, 'G5':60, 'a5':61, 'A5':62, 'b5':63,
     # Oct 6
-    'c6':64, 'C6':65, 'q6':65, 'd6':66, 'D6':67, 'w6':67, 'e6':68, 'f6':69, 'F6':70, 'x6':70, 'g6':71, 'G6':72, 'y6':72, 'a6':73, 'A6':74, 'z6':74, 'b6':75,
+    'c6':64, 'C6':65, 'd6':66, 'D6':67, 'e6':68, 'f6':69, 'F6':70, 'g6':71, 'G6':72, 'a6':73, 'A6':74, 'b6':75,
     # Oct 7
-    'c7':76, 'C7':77, 'q7':77, 'd7':78, 'D7':79, 'w7':79, 'e7':80, 'f7':81, 'F7':82, 'x7':82, 'g7':83, 'G7':84, 'y7':84, 'a7':85, 'A7':86, 'z7':86, 'b7':87,
+    'c7':76, 'C7':77, 'd7':78, 'D7':79, 'e7':80, 'f7':81, 'F7':82, 'g7':83, 'G7':84, 'a7':85, 'A7':86, 'b7':87,
     # Oct 8
     'c8':88
     }
-    return pitchdict[string]
+    ret = pitchdict[string] + transp
+    if ret < 1:
+        ret = 1
+    if ret > 88:
+        ret = 88
+    return ret
 
+
+def pitch2string(num, transp):
+    '''dictionary that gives back the piano-key-string'''
+    num2string = {1: 'a0', 2: 'A0', 3: 'b0',
+    4: 'c1', 5: 'C1', 6: 'd1', 7: 'D1', 8: 'e1', 9: 'f1', 10: 'F1', 11: 'g1', 12: 'G1', 13: 'a1', 14: 'A1', 15: 'b1',
+    16: 'c2', 17: 'C2', 18: 'd2', 19: 'D2', 20: 'e2', 21: 'f2', 22: 'F2', 23: 'g2', 24: 'G2', 25: 'a2', 26: 'A2', 27: 'b2',
+    28: 'c3', 29: 'C3', 30: 'd3', 31: 'D3', 32: 'e3', 33: 'f3', 34: 'F3', 35: 'g3', 36: 'G3', 37: 'a3', 38: 'A3', 39: 'b3',
+    40: 'c4', 41: 'C4', 42: 'd4', 43: 'D4', 44: 'e4', 45: 'f4', 46: 'F4', 47: 'g4', 48: 'G4', 49: 'a4', 50: 'A4', 51: 'b4',
+    52: 'c5', 53: 'C5', 54: 'd5', 55: 'D5', 56: 'e5', 57: 'f5', 58: 'F5', 59: 'g5', 60: 'G5', 61: 'a5', 62: 'A5', 63: 'b5',
+    64: 'c6', 65: 'C6', 66: 'd6', 67: 'D6', 68: 'e6', 69: 'f6', 70: 'F6', 71: 'g6', 72: 'G6', 73: 'a6', 74: 'A6', 75: 'b6',
+    76: 'c7', 77: 'C7', 78: 'd7', 79: 'D7', 80: 'e7', 81: 'f7', 82: 'F7', 83: 'g7', 84: 'G7', 85: 'a7', 86: 'A7', 87: 'b7',
+    88: 'c8'}
+    ret = num2string[num + transp]
+    return ret
 
 def barline_pos_list(gridlist):
     '''Returns a list of the position of every barline.'''
@@ -459,11 +479,13 @@ def staff_height(mn, mx):
     return staffheight
 
 
-def draw_staff_lines(y, mn, mx):
+def draw_staff_lines(y, mn, mx, keyboard):
     '''
     'y' takes the y-position of the uppper line of the staff.
     'mn' and 'mx' take the lowest and highest note in the staff
     so the function can draw the needed lines.
+    'keyboard' draws a miniature pianokeyboard at the end of the 
+    line when set to 1. If 0 there is no piano keyboard.
     '''
 
     def draw3Line(y):
@@ -471,12 +493,19 @@ def draw_staff_lines(y, mn, mx):
         canvas.create_line(x, y, x+(paperwidth-marginsx-marginsx), y, width=2, capstyle='round')
         canvas.create_line(x, y+10, x+(paperwidth-marginsx-marginsx), y+10, width=2, capstyle='round')
         canvas.create_line(x, y+20, x+(paperwidth-marginsx-marginsx), y+20, width=2, capstyle='round')
+        if keyboard == 1:
+            canvas.create_line(x+(paperwidth-marginsx-marginsx), y, x+(paperwidth-marginsx-marginsx)+(scale*12), y, width=4, capstyle='round')
+            canvas.create_line(x+(paperwidth-marginsx-marginsx), y+10, x+(paperwidth-marginsx-marginsx)+(scale*12), y+10, width=4, capstyle='round')
+            canvas.create_line(x+(paperwidth-marginsx-marginsx), y+20, x+(paperwidth-marginsx-marginsx)+(scale*12), y+20, width=4, capstyle='round')
 
 
     def draw2Line(y):
         x = marginx_start
         canvas.create_line(x, y, x+(paperwidth-marginsx-marginsx), y, width=0.5, capstyle='round')
         canvas.create_line(x, y+10, x+(paperwidth-marginsx-marginsx), y+10, width=0.5, capstyle='round')
+        if keyboard == 1:
+            canvas.create_line(x+(paperwidth-marginsx-marginsx), y, x+(paperwidth-marginsx-marginsx)+(scale*12), y, width=4, capstyle='round')
+            canvas.create_line(x+(paperwidth-marginsx-marginsx), y+10, x+(paperwidth-marginsx-marginsx)+(scale*12), y+10, width=4, capstyle='round')
 
 
     def drawDash2Line(y):
@@ -487,9 +516,12 @@ def draw_staff_lines(y, mn, mx):
         elif platform.system() == 'Windows':
             canvas.create_line(x, y, x+(paperwidth-marginsx-marginsx), y, width=1, dash=4, capstyle='round')
             canvas.create_line(x, y+10, x+(paperwidth-marginsx-marginsx), y+10, width=1, dash=4, capstyle='round')
+        if keyboard == 1:
+            canvas.create_line(x+(paperwidth-marginsx-marginsx), y, x+(paperwidth-marginsx-marginsx)+(scale*12), y, width=4, capstyle='round')
+            canvas.create_line(x+(paperwidth-marginsx-marginsx), y+10, x+(paperwidth-marginsx-marginsx)+(scale*12), y+10, width=4, capstyle='round')
 
     keyline = 0
-    staffheight = 0
+    staffheight = staff_height(mn,mx)
 
     if mx >= 81:
         draw3Line(0+y)
@@ -571,6 +603,9 @@ def draw_staff_lines(y, mn, mx):
         draw3Line(keyline+170+y)
         draw2Line(keyline+210+y)
         canvas.create_line(marginx_start, keyline+240+y, marginx_start+(paperwidth-marginsx-marginsx), keyline+240+y, width=2)
+
+    if keyboard == 1:
+        canvas.create_rectangle(marginx_start+(paperwidth-marginsx-marginsx), y-20, marginx_start+(paperwidth-marginsx-marginsx)+(marginsx/1.5), y+staffheight+20)
 
 
 def draw_papers(y, papercol):
@@ -972,6 +1007,27 @@ def interpolation(x, y, z):
         return (z - x) / (y - x)
 
 
+def get_tkinter_text_index(fstring,curs_pos):
+    '''
+    This function returns the index number of 
+    a string using tkinters line.column notation
+    as second argument. 
+    fstring = tkinter text widget text
+    curs_pos = tkinter_text_widget.index('insert')
+    '''
+    curs_pos = curs_pos.split('.')
+    line = eval(curs_pos[0])
+    column = eval(curs_pos[1])
+    out = 0
+    for sym in fstring:
+        if line == 1:
+            return out + column
+        else:
+            if sym == '\n':
+                line -= 1
+        out += 1
+
+
 
 
 
@@ -996,6 +1052,7 @@ subtitle = ''
 composer = ''
 copyright = ''
 # settings:
+transpose = 0
 mpline = 5
 systemspacing = 90
 scale = 100/100
@@ -1027,7 +1084,7 @@ marginsx = 40
 marginsy = 60
 printareawidth = paperwidth - (marginsx*2)
 printareaheight = paperheigth - (marginsy*2)
-marginx_start = 40 + marginsx
+marginx_start = marginsx * 2
 number2pitch = {1: 'a0', 2: 'A0', 3: 'b0',
      4: 'c1', 5: 'C1', 6: 'd1', 7: 'D1', 8: 'e1', 9: 'f1', 10: 'F1', 11: 'g1', 12: 'G1', 13: 'a1', 14: 'A1', 15: 'b1', 
      16: 'c2', 17: 'C2', 18: 'd2', 19: 'D2', 20: 'e2', 21: 'f2', 22: 'F2', 23: 'g2', 24: 'G2', 25: 'a2', 26: 'A2', 27: 'b2', 
@@ -1044,7 +1101,7 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
     global scale_S, renderno, pagespace, title, subtitle, composer, copyright
     global mpline, systemspacing, scale, grid, msg, paperheigth, paperwidth
     global marginsy, marginsx, printareaheight, printareawidth, printtitle
-    global printcomposer, printcopyright, measurenumbering, pagenumbering
+    global printcomposer, printcopyright, measurenumbering, pagenumbering, transpose
     grid = []
     msg = []
     title = ''
@@ -1065,7 +1122,7 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
     def reading():
         global scale_S, renderno, pagespace, title, subtitle, composer, copyright, fillpagetreshold
         global mpline, systemspacing, scale, grid, msg, paperheigth, paperwidth, windowsgsexe
-        global marginsy, marginsx, printareaheight, printareawidth, printtitle, default
+        global marginsy, marginsx, printareaheight, printareawidth, printtitle, default, transpose
         global printcomposer, printcopyright, measurenumbering, marginx_start, midinotecolor
         
         def create_dir_win():
@@ -1154,7 +1211,7 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
                         elif i == '_':
                             antisymetric.append(-2)
                         elif musicstring[ind2+1] in ['0', '1', '2', '3', '4', '5', '6', '7', '8']:
-                            note = string2pitch(musicstring[ind2]+musicstring[ind2+1])
+                            note = string2pitch(musicstring[ind2]+musicstring[ind2+1], transpose)
                             antisymetric.append(note)
                     elif i == '>':
                         msgprep.append([index, 'antisym', antisymetric])
@@ -1168,7 +1225,7 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
             # note
             if sym in ['a', 'A', 'b', 'c', 'C', 'd', 'D', 'e', 'f', 'F', 'g', 'G']:
                 if musicstring[index+1] in ['0', '1', '2', '3', '4', '5', '6', '7', '8']:
-                    msgprep.append([index, 'note', string2pitch(musicstring[index]+musicstring[index+1])])
+                    msgprep.append([index, 'note', string2pitch(musicstring[index]+musicstring[index+1], transpose)])
 
             # split (gets deleted from program)
             if sym == '=':
@@ -1300,10 +1357,17 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
             if event[1] == 'copyright':
                 copyright = event[2]
 
+            # transpose
+            if event[1] == 'transpose':
+                try:
+                    transpose = eval(event[2])
+                except:
+                    ...
+
             # invisible note
             if event[1] == 'invis':
                 try: 
-                    note = string2pitch(event[2])
+                    note = string2pitch(event[2], transpose)
                     msg.append([index, 'invis', cursor, 'dummy', note, hand])
                 except:
                     ...
@@ -1428,7 +1492,7 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
                     cursor -= duration
                 else:
                     try: cursor = barline_pos_list(grid)[event[2]-1]
-                    except IndexError: print('ERROR: cursor out of range; try increasing the measure amount')
+                    except IndexError: print('ERROR: cursor out of range; try increasing the measure amount in ~meas{}')
 
             # duration
             if event[1] == 'dur':
@@ -1663,11 +1727,6 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
 
     reading()
 
-    # for page in msg:
-    #     for line in page:
-    #         for note in line:
-    #             print(note)
-
 
 
 
@@ -1685,7 +1744,7 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
 
             for page in msg:
                 counter += 1
-                #draw_papers(cursy, papercol)
+                draw_papers(cursy, "#ffffff")
                 if printcopyright == 1:
                     canvas.create_text(marginx_start, cursy+20+paperheigth, text='page %s of %s | %s | %s' % (counter, len(msg), title, copyright), anchor='w', font=("Courier", fontsize, "normal"))
 
@@ -1885,7 +1944,10 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
                     lcounter += 1
                     staffheight, minnote, maxnote = get_staff_height(line)
                     
-                    draw_staff_lines(cursy, minnote, maxnote)
+                    if lcounter == 1: 
+                        draw_staff_lines(cursy, minnote, maxnote, 1)
+                    else:
+                        draw_staff_lines(cursy, minnote, maxnote, 0)
 
                     if len(page) == 1:
                         cursy += staffheight + systemspacing + (pagespace[pcounter-1] / (len(page)))
@@ -2605,7 +2667,7 @@ def mouse_note_highlight(event):
 
 
 ##########################################################################
-## Insert barchecks                                                     ##
+## Tools                                                                ##
 ##########################################################################
 '''A tool for quickly inserting a bunch of barchecks to the file
 to make life easier!'''
@@ -2617,10 +2679,68 @@ def inserting_barchecks():
         startnum += 1
 
 
+def auto_inserting_barcheck(event):
+    '''
+    By pressing the insert key, the program 
+    inserts a new barcheck with the right bar number
+    '''
+    print("auto_inserting_barcheck")
+    curr_index = textw.index(INSERT)
+    
+    # searching for last '_1' (underscore + number) in file.
+    bar_check_number = 1
+    t_index = get_tkinter_text_index(get_file(),curr_index)
+    s_text = get_file()[0:t_index]
+    ind2 = len(s_text)
+    digits = ['1','2','3','4','5','6','7','8','9','0']
+    for sym in reversed(s_text):
+        dig = ''
+        if sym == '_'and s_text[ind2] in digits:
+            for i in s_text[ind2:-1]:
+                if i in digits:
+                    dig += i
+                else:
+                    break
+            bar_check_number = eval(dig) + 1
+            break
+        ind2 -= 1
+    # inserting the barcheck in text widget
+    curr_index = eval(curr_index)
+    textw.insert(textw.index('insert'), '\n'+'_'+str(bar_check_number)+' ')
+    #textw.mark_set("insert", curr_index+len(str(bar_check_number)))
 
 
+def transpose_selection(event):
+    # get info
+    sel = textw.selection_get()
+    if sel == '':
+        print('transpose_selection: there is no selection.')
+        return
+    # sel_first = textw.count("1.0", "sel.first")
+    # sel_last = textw.count("1.0", "sel.last")[0]
+    
+    # set transpose
+    transp = 0
+    if event.keysym == 'bracketleft':
+        transp = 1
+    elif event.keysym == 'bracketright':
+        transp = -1
 
+    # remove selection
+    textw.delete('sel.first','sel.last')
 
+    # insert transposed selection
+    for i in range(0,len(sel)):
+        if sel[i] in ['a','A','b','c','C','d','D','e','f','F','g','G'] and sel[i+1] in ['0','1','2','3','4','5','6','7','8']:
+            pitchnum = string2pitch(sel[i]+sel[i+1], transp)
+            textw.insert("insert", pitch2string(pitchnum, 0))
+            continue
+
+        else:
+            if sel[i-1] in ['a','A','b','c','C','d','D','e','f','F','g','G'] and sel[i] in ['0','1','2','3','4','5','6','7','8']:
+                continue
+            textw.insert('insert', sel[i])
+    textw.focus()
 
 
 
@@ -2689,6 +2809,9 @@ autosave()
 root.bind('<F11>', fullscreen)
 root.bind('<KeyPress>', keypress)
 root.bind('<KeyRelease>', keyrelease)
+root.bind('<Control-bracketleft>', transpose_selection)
+root.bind('<Control-bracketright>', transpose_selection)
+textw.bind('<Insert>', auto_inserting_barcheck)
 piano.bind('<Button-1>', mouse_note_input)
 piano.bind('<Motion>', mouse_note_highlight)
 root.mainloop()
