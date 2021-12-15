@@ -7,6 +7,7 @@ from tkinter import Tk, Text, PanedWindow, Canvas, Scrollbar, Menu, filedialog, 
 from tkinter import colorchooser, INSERT, DoubleVar, Label, Image
 import tkinter.ttk as ttk
 import platform, subprocess, os, sys, threading, math, datetime, time, errno
+from mido import MidiFile
 # if platform.system() == 'Linux':
 #     import rtmidi
 if platform.system() == 'Windows':
@@ -45,7 +46,7 @@ panedmaster.add(downpanel)
 paned = PanedWindow(uppanel, relief='flat', sashwidth=20, sashcursor='arrow', orient='h', bg=_bg)
 uppanel.add(paned)
         # Left Panel
-leftpanel = PanedWindow(paned, relief='flat', width=1350, bg=_bg)
+leftpanel = PanedWindow(paned, relief='flat', width=1300, bg=_bg)
 paned.add(leftpanel)
         # Right Panel
 rightpanel = PanedWindow(paned, sashwidth=15, sashcursor='arrow', relief='flat', bg=_bg)
@@ -100,7 +101,7 @@ if platform.system() == 'Windows':
     canvas.bind("<Button-3>", zoomerM)
 
 # text --> rightpanel
-textw = Text(rightpanel, foreground='black', background=_bg, insertbackground='red', undo=True, maxundo=100, autoseparators=True)
+textw = Text(rightpanel, foreground='yellow', background='black', insertbackground='red', undo=True, maxundo=100, autoseparators=True)
 textw.place(relwidth=1, relheight=1)
 textw.focus_set()
 fsize = 16
@@ -171,16 +172,16 @@ default = '''~shadeofgrey{70} //0=black; 100=white
 // For linux: sudo apt-get install [package name]'''
 
 
-starttemplate = '''//titles:
-~title{Tutorial}
-~composer{PianoScript}
+starttemplate = '''// titles:
+~title{...title...}
+~composer{...composer...}
 ~copyright{copyrights reserved 2021}
 
-//grid:
-~meas{4 4/4 4}
+// grid:
+~grid{32 4/4 4}
 
 //settings:
-~mpsystem{4}
+~mpsystem{5}
 ~papersize{150}
 ~systemspace{90}
 ~shadeofgrey{70}
@@ -268,7 +269,7 @@ def quit_editor():
     whileloops = 0
     time.sleep(0.1)
     if filepath == 'New':
-        save_quest()
+        ...#save_quest()
     else:
         save_file()
     root.destroy()
@@ -603,6 +604,8 @@ def draw_staff_lines(y, mn, mx, keyboard):
         draw3Line(keyline+170+y)
         draw2Line(keyline+210+y)
         canvas.create_line(marginx_start, keyline+240+y, marginx_start+(paperwidth-marginsx-marginsx), keyline+240+y, width=2)
+        if keyboard == 1:
+            canvas.create_line(marginx_start+(paperwidth-marginsx-marginsx), keyline+240+y, marginx_start+(paperwidth-marginsx-marginsx)+(scale*12), keyline+240+y, width=4, capstyle='round')
 
     if keyboard == 1:
         canvas.create_rectangle(marginx_start+(paperwidth-marginsx-marginsx), y-20, marginx_start+(paperwidth-marginsx-marginsx)+(marginsx/1.5), y+staffheight+20)
@@ -756,6 +759,8 @@ def note_active_gradient(x0, x1, y, linenr):
     x0 = event_x_pos(x0, linenr)
     x1 = event_x_pos(x1, linenr)
     width = diff(x0, x1)
+    if width == 0:
+        width = 1
     (r1,g1,b1) = root.winfo_rgb('white')
     (r2,g2,b2) = root.winfo_rgb(midinotecolor)
     r_ratio = float(r2-r1) / width
@@ -850,7 +855,7 @@ def measure_length(tsig, tickperquarter):
 
 def addmeas_processor(string):
     '''
-    This function processes the ~meas{} command. It translates the time signature to length
+    This function processes the ~grid{} command. It translates the time signature to length
     in piano-ticks. the function returns 'length in piano-tick', 'grid-division' and 
     'amount of measures to create'.
     '''
@@ -1422,7 +1427,7 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
                     ...
 
             # addmeas
-            if event[1] == 'meas':
+            if event[1] == 'grid':
                 try:
                     length, grids, amount, visible, beam = addmeas_processor(event[2])
                     grid.append([length, eval(grids), eval(amount), visible, beam])
@@ -1492,7 +1497,7 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
                     cursor -= duration
                 else:
                     try: cursor = barline_pos_list(grid)[event[2]-1]
-                    except IndexError: print('ERROR: cursor out of range; try increasing the measure amount in ~meas{}')
+                    except IndexError: print('ERROR: cursor out of range; try increasing the measure amount in ~grid{}')
 
             # duration
             if event[1] == 'dur':
@@ -2429,9 +2434,9 @@ threading.Thread(target=autorender).start()
 
 
 
-#------------------
-# EXPORT FUNCTIONS
-#------------------
+#-------------------
+# EXPORT FUNCTIONS |
+#-------------------
 
 
 def exportPS():
@@ -2521,9 +2526,9 @@ def exportPDF():
 
 
 
-#------------
+#-------------
 # MIDI input
-#------------
+#-------------
 
 # midi_record_toggle = 0
 # def midi_toggle(q='q'):
@@ -2591,9 +2596,9 @@ def exportPDF():
 
 
 
-#------------------
+#-----------------
 # Piano Keyboard
-#------------------
+#-----------------
 '''This is the mouse click keyboard input. it draws a keyboard on a canvas
 widget and when hoovering it highlights the selected key. Left click
 will insert a note on cursor position in the Text widget, while holding shift 
@@ -2666,17 +2671,9 @@ def mouse_note_highlight(event):
 
 
 
-##########################################################################
-## Tools                                                                ##
-##########################################################################
-'''A tool for quickly inserting a bunch of barchecks to the file
-to make life easier!'''
-def inserting_barchecks():
-    startnum = int(simpledialog.askfloat("From...", "Insert a number from which to insert barchecks to the file.", parent=root))
-    endnum = int(simpledialog.askfloat("To...", "Insert how many barchecks you want to insert.", parent=root))
-    for i in range(endnum):
-        textw.insert(textw.index(INSERT), '_'+str(startnum)+' '+'\n')
-        startnum += 1
+#--------
+# Tools
+#--------
 
 
 def auto_inserting_barcheck(event):
@@ -2712,35 +2709,38 @@ def auto_inserting_barcheck(event):
 
 def transpose_selection(event):
     # get info
-    sel = textw.selection_get()
-    if sel == '':
+    if not textw.tag_ranges("sel"):
         print('transpose_selection: there is no selection.')
         return
-    # sel_first = textw.count("1.0", "sel.first")
-    # sel_last = textw.count("1.0", "sel.last")[0]
+    selection = textw.selection_get()
+    sel_first = textw.index('sel.first')
+    sel_last = textw.index('sel.last')
     
     # set transpose
     transp = 0
     if event.keysym == 'bracketleft':
-        transp = 1
-    elif event.keysym == 'bracketright':
         transp = -1
+    elif event.keysym == 'bracketright':
+        transp = 1
 
     # remove selection
     textw.delete('sel.first','sel.last')
 
     # insert transposed selection
-    for i in range(0,len(sel)):
-        if sel[i] in ['a','A','b','c','C','d','D','e','f','F','g','G'] and sel[i+1] in ['0','1','2','3','4','5','6','7','8']:
-            pitchnum = string2pitch(sel[i]+sel[i+1], transp)
+    for i in range(0,len(selection)):
+        if selection[i] in ['a','A','b','c','C','d','D','e','f','F','g','G'] and selection[i+1] in ['0','1','2','3','4','5','6','7','8']:
+            pitchnum = string2pitch(selection[i]+selection[i+1], transp)
             textw.insert("insert", pitch2string(pitchnum, 0))
             continue
 
         else:
-            if sel[i-1] in ['a','A','b','c','C','d','D','e','f','F','g','G'] and sel[i] in ['0','1','2','3','4','5','6','7','8']:
+            if selection[i-1] in ['a','A','b','c','C','d','D','e','f','F','g','G'] and selection[i] in ['0','1','2','3','4','5','6','7','8']:
                 continue
-            textw.insert('insert', sel[i])
-    textw.focus()
+            textw.insert('insert', selection[i])
+    
+    # reset selection
+    textw.tag_add("sel", sel_first, sel_last)
+    textw.focus_force()
 
 
 
@@ -2750,7 +2750,333 @@ def transpose_selection(event):
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+#--------------
+# MIDI import
+#--------------
+def midi_import():
+    # ask for save
+    new_file()
+    # clear textbox
+    textw.delete('1.0','end') 
+
+    # ---------------------------------------------
+    # translate midi data to note messages with
+    # the right start and stop (piano)ticks.
+    # ---------------------------------------------
+    midifile = filedialog.askopenfile(parent=root, 
+        mode='Ur', 
+        title='Open midi (experimental)...', 
+        filetypes=[("MIDI files","*.mid")]).name
+    msgs = []
+    mid = MidiFile(midifile)
+    tpb = mid.ticks_per_beat
+    msperbeat = 1
+    for i in mid:
+        msgs.append(i.dict())
+    ''' convert time to pianotick '''
+    for i in msgs:
+        i['time'] = round(tpb * (1 / msperbeat) * 1000000 * i['time'] * (256 / tpb),0)
+        if i['type'] == 'set_tempo':
+            msperbeat = i['tempo']    
+    ''' change time values from delta to relative time. '''
+    memory = 0
+    for i in msgs:
+        i['time'] +=  memory
+        memory = i['time']
+        # change every note_on with 0 velocity to note_off.
+        if i['type'] == 'note_on' and i['velocity'] == 0:
+            i['type'] = 'note_off'
+    ''' get note_on, note_off, time_signature durations. '''
+    index = 0
+    for i in msgs:
+        if i['type'] == 'note_on':
+            for n in msgs[index:]:
+                if n['type'] == 'note_off' and i['note'] == n['note']:
+                    i['duration'] = n['time'] - i['time']
+                    break
+
+        if i['type'] == 'time_signature':
+            for t in msgs[index+1:]:
+                if t['type'] == 'time_signature' or t['type'] == 'end_of_track':
+                    i['duration'] = t['time'] - i['time']
+                    break
+        index += 1
+    
+    # for debugging purposes print every midi message.
+    for i in msgs:
+        print(i)
+
+    # -----------------------
+    # import help functions
+    # -----------------------
+    def insert_text(line, column, text):
+        '''Inserts text forcing the line'''
+        lastln = int(textw.index('end').split('.')[0])
+        if lastln <= line:
+            for i in range(0,line):
+                textw.insert('end', '\n')
+        textw.insert('%d.%d' % (line, column), text)
+
+    def midi_duration_converter(duration):
+        '''returns a string ready for import'''
+        if duration == 1024:
+            return 'W'
+        elif duration == 1536:
+            return 'W.'
+        elif duration == 1792:
+            return 'W..'
+        elif duration == 512:
+            return 'H'
+        elif duration == 768:
+            return 'H.'
+        elif duration == 896:
+            return 'H..'
+        elif duration == 256:
+            return 'Q'
+        elif duration == 384:
+            return 'Q.'
+        elif duration == 448:
+            return 'Q..'
+        elif duration == 128:
+            return 'E'
+        elif duration == 192:
+            return 'E.'
+        elif duration == 224:
+            return 'E..'
+        elif duration == 64:
+            return 'S'
+        elif duration == 96:
+            return 'S.'
+        elif duration == 112:
+            return 'S..'
+        elif duration == 32:
+            return 'T'
+        elif duration == 48:
+            return 'T.'
+        elif duration == 56:
+            return 'T..'
+        else:
+            return '~dur{%d}' % duration
+
+    def which_measure(pianotick):
+        '''returns in which measure the pianotick is located'''
+        gridlist = []
+        for i in msgs: 
+            if i['type'] == 'time_signature':
+                tsig = str(i['numerator'])+'/'+str(i['denominator'])
+                amount = round(i['duration'] / measure_length(tsig, 256),0)
+                gridlist.append({'measure_length':round(measure_length(tsig,256),0),'amount':amount})
+        out = 1
+        blinelist = [0]
+        memory = 0
+        for grid in gridlist:
+            for i in range(1,int(grid['amount'])+1):
+                blinelist.append(i * grid['measure_length'] + memory)
+                if i == grid['amount']:
+                    memory = i * grid['measure_length']
+        for i in range(0,len(blinelist)):
+            if i+1 == len(blinelist):
+                return out
+            if pianotick >= blinelist[i] and pianotick < blinelist[i+1]:
+                return out
+            else:
+                out += 1
+        return out
+
+    def measno2pianotick(meas_no):
+        '''returns the pianotick of the measure number.'''
+        gridlist = []
+        for i in msgs: 
+            if i['type'] == 'time_signature':
+                tsig = str(i['numerator'])+'/'+str(i['denominator'])
+                amount = round(i['duration'] / measure_length(tsig, 256),0)
+                gridlist.append({'measure_length':round(measure_length(tsig,256),0),'amount':amount})
+        out = 1
+        blinelist = [0]
+        memory = 0
+        for grid in gridlist:
+            for i in range(1,int(grid['amount'])+1):
+                blinelist.append(i * grid['measure_length'] + memory)
+                if i == grid['amount']:
+                    memory = i * grid['measure_length']
+        return blinelist[meas_no-1]
+
+    # --------------
+    # Write titles.
+    # --------------
+    line = 1
+    column = 0
+    t = midifile.split('.')[0]
+    insert_text(line, column, '// titles:')
+    line += 1
+    insert_text(line, column, '~title{%s}' % t)
+    line += 1
+    insert_text(line, column, '~composer{...composer...}')
+    line += 1
+    insert_text(line, column, '~copyright{copyrights reserved 2021}')
+
+    # ------------
+    # Write grid.
+    # ------------
+    line += 2
+    insert_text(line, column, '// grid')
+    for i in msgs:
+        if i['type'] == 'time_signature':
+            tsig = str(i['numerator'])+'/'+str(i['denominator'])
+            amount = round(i['duration'] / measure_length(tsig, 256),0)
+            gridno = i['numerator']
+            if tsig == '6/8':
+                gridno = 2
+            if tsig == '12/8':
+                gridno = 4
+            line += 1
+            insert_text(line, column, '~grid{%d %s %d}' % (amount, tsig, gridno))
+    
+    # ----------------
+    # Write settings.
+    # ----------------
+    line += 2
+    insert_text(line, column, '// settings:')
+    line += 1
+    insert_text(line, column, '~mpsystem{5}')
+    line += 1
+    insert_text(line, column, '~papersize{150}')
+    line += 1
+    insert_text(line, column, '~systemspace{90}')
+    line += 1
+    insert_text(line, column, '~shadeofgrey{70}')        
+
+    # -------------
+    # Write notes.
+    # -------------
+    line += 2
+    insert_text(line,0,'~hand{R}')
+    line += 1
+    dur_set = 0
+    curs_set = 0
+    curr_meas = 1
+    insert_text(line,0,'_1 ')
+    column = 3
+    for i in msgs:  
+        if i['type'] == 'note_on' and i['channel'] == 0:
+            cursor_and_length = ''
+            meas_no = which_measure(i['time'])
+            if meas_no > curr_meas:
+                line += 1
+                insert_text(line,0,'_%d ' % meas_no)
+                curr_meas = meas_no
+                curs_set = measno2pianotick(meas_no)
+            if curs_set == i['time']:#if cursor position same as note start position
+                if dur_set == i['duration']:
+                    ...
+                else:
+                    cursor_and_length = midi_duration_converter(i['duration'])
+            elif curs_set > i['time']:# if cursor position later than note start position
+                curs_back = curs_set - i['time']
+                curs_string = midi_duration_converter(curs_back)+'_'
+                if dur_set == i['duration']:
+                    ...
+                else:
+                    curs_string += midi_duration_converter(i['duration'])
+                cursor_and_length = curs_string
+            elif curs_set < i['time']:# in case of a rest in between
+                curs_fw = i['time'] - curs_set
+                curs_string = midi_duration_converter(curs_fw)+'r'
+                if dur_set == i['duration']:
+                    ...
+                else:
+                    curs_string += midi_duration_converter(i['duration'])
+                cursor_and_length = curs_string
+
+            note = number2pitch[i['note']-20]
+            ins_string = cursor_and_length+note
+            insert_text(line, column, ins_string+' ')
+
+            curs_set = i['time'] + i['duration']
+            column += len(ins_string)+1
+            dur_set = i['duration']
+    line += 2
+    insert_text(line,0,'~hand{L}')
+    line += 1
+    dur_set = 0
+    curs_set = 0
+    curr_meas = 1
+    insert_text(line,0,'_1 ')
+    column = 3
+    for i in msgs:  
+        if i['type'] == 'note_on' and i['channel'] >= 1:
+            cursor_and_length = ''
+            meas_no = which_measure(i['time'])
+            if meas_no > curr_meas:
+                line += 1
+                insert_text(line,0,'_%d ' % meas_no)
+                curr_meas = meas_no
+                curs_set = measno2pianotick(meas_no)
+            if curs_set == i['time']:#if cursor position same as note start position
+                if dur_set == i['duration']:
+                    ...
+                else:
+                    cursor_and_length = midi_duration_converter(i['duration'])
+            elif curs_set > i['time']:# if cursor position later than note start position
+                curs_back = curs_set - i['time']
+                curs_string = midi_duration_converter(curs_back)+'_'
+                if dur_set == i['duration']:
+                    ...
+                else:
+                    curs_string += midi_duration_converter(i['duration'])
+                cursor_and_length = curs_string
+            elif curs_set < i['time']:# in case of a rest in between
+                curs_fw = i['time'] - curs_set
+                curs_string = midi_duration_converter(curs_fw)+'r'
+                if dur_set == i['duration']:
+                    ...
+                else:
+                    curs_string += midi_duration_converter(i['duration'])
+                cursor_and_length = curs_string
+
+            note = number2pitch[i['note']-20]
+            ins_string = cursor_and_length+note
+            insert_text(line, column, ins_string+' ')
+
+            curs_set = i['time'] + i['duration']
+            column += len(ins_string)
+            dur_set = i['duration']
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#-------
 # Menu
+#-------
 menubar = Menu(root, relief='flat', bg=_bg)
 root.config(menu=menubar)
 
@@ -2758,6 +3084,7 @@ fileMenu = Menu(menubar, tearoff=0)
 
 fileMenu.add_command(label='new', command=new_file)
 fileMenu.add_command(label='open', command=open_file)
+fileMenu.add_command(label='import MIDI (experimental)', command=midi_import)
 fileMenu.add_command(label='save', command=save_file)
 fileMenu.add_command(label='save as', command=save_as)
 
@@ -2776,17 +3103,15 @@ fileMenu.add_command(label="fullscreen/windowed (F11)", underline=0, command=men
 
 fileMenu.add_separator()
 
-fileMenu.add_command(label="insert barcheck tool", underline=0, command=inserting_barchecks)
-
-fileMenu.add_separator()
-
 fileMenu.add_command(label="exit", underline=0, command=quit_editor)
 menubar.add_cascade(label="menu", underline=0, menu=fileMenu)
 
 
 
 
-
+#------------
+# Shortcuts
+#------------
 def keypress(event):
     textw.edit_modified(True)
     global shiftkey
@@ -2805,6 +3130,7 @@ def keyrelease(event):
 
 new_file()
 autosave()
+#midi_import('test.mid')
 # root.bind('<Escape>', midi_toggle)
 root.bind('<F11>', fullscreen)
 root.bind('<KeyPress>', keypress)
