@@ -21,12 +21,12 @@ from shutil import which
 #--------------------
 
 
-#colors
-_bg = '#aaaaaa' #d9d9d9
+# colors
+_bg = '#333333' #d9d9d9
 papercolor = '#555555'
 
 
-# Root
+# root
 root = Tk()
 root.title('PianoScript')
 ttk.Style(root).theme_use("alt")
@@ -42,16 +42,16 @@ uppanel = PanedWindow(panedmaster, height=10000, relief='flat', bg=_bg)
 panedmaster.add(uppanel)
 downpanel = PanedWindow(panedmaster, relief='flat', bg=_bg)
 panedmaster.add(downpanel)
-    # editor pane
+# editor panel
 paned = PanedWindow(uppanel, relief='flat', sashwidth=20, sashcursor='arrow', orient='h', bg=_bg)
 uppanel.add(paned)
-        # Left Panel
+# left panel
 leftpanel = PanedWindow(paned, relief='flat', width=1300, bg=_bg)
 paned.add(leftpanel)
-        # Right Panel
+# right panel
 rightpanel = PanedWindow(paned, sashwidth=15, sashcursor='arrow', relief='flat', bg=_bg)
 paned.add(rightpanel)
-# Canvas --> leftpanel
+# canvas --> leftpanel
 canvas = Canvas(leftpanel, bg=papercolor, relief='flat')
 canvas.place(relwidth=1, relheight=1)
 vbar = Scrollbar(canvas, orient='vertical', width=20, relief='flat', bg=_bg)
@@ -193,7 +193,7 @@ _1
 
 
 ~hand{L}
-_1 ''' # % datetime.datetime.now().year
+_1 c4''' # % datetime.datetime.now().year
 
 
 file = textw.get('1.0', END + '-1c')
@@ -269,7 +269,7 @@ def quit_editor():
     whileloops = 0
     time.sleep(0.1)
     if filepath == 'New':
-        ...#save_quest()
+        save_quest()
     else:
         save_file()
     root.destroy()
@@ -1227,6 +1227,18 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
             if bracket == 1:
                 continue
 
+            # dur in ()
+            if sym == '(':
+                index2 = index
+                for i in musicstring[index:]:
+                    if i == ')':
+                        break
+                    index2 += 1
+                l_str = musicstring[index+1:index2]
+                msgprep.append([index, 'dur', l_str])
+                index = index2
+
+
             # note
             if sym in ['a', 'A', 'b', 'c', 'C', 'd', 'D', 'e', 'f', 'F', 'g', 'G']:
                 if musicstring[index+1] in ['0', '1', '2', '3', '4', '5', '6', '7', '8']:
@@ -1256,12 +1268,6 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
                 msgprep.append([index, 'beam_on'])
             if sym == ']':
                 msgprep.append([index, 'beam_off'])
-
-            # slur
-            if sym == '(':
-                msgprep.append([index, 'slur_on'])
-            if sym == ')':
-                msgprep.append([index, 'slur_off'])
 
             # durations
             if sym == 'W':
@@ -1633,8 +1639,6 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
         cursor = 0
         grdpart = []
         for i in grid:
-            oldpos = 0
-
             for add in range(i[2]):
                 length = i[0]
                 divide = i[1]
@@ -1653,10 +1657,6 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
 
         # sort on starttime of event to get the barlines in the right order
         msg.sort(key=lambda x: x[2])
-
-
-        # placing msgs in lists of beam grouping based on ~maes{} command
-        
 
 
         ##  placing messages in lists of 'lines' ##
@@ -1734,7 +1734,10 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
 
 
 
-
+    for page in msg:
+        for line in page:
+            for i in line:
+                print(i)
 
 
 
@@ -1749,7 +1752,7 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
 
             for page in msg:
                 counter += 1
-                draw_papers(cursy, "#ffffff")
+                draw_papers(cursy, "white")
                 if printcopyright == 1:
                     canvas.create_text(marginx_start, cursy+20+paperheigth, text='page %s of %s | %s | %s' % (counter, len(msg), title, copyright), anchor='w', font=("Courier", fontsize, "normal"))
 
@@ -2786,7 +2789,7 @@ def midi_import():
         msgs.append(i.dict())
     ''' convert time to pianotick '''
     for i in msgs:
-        i['time'] = round(tpb * (1 / msperbeat) * 1000000 * i['time'] * (256 / tpb),0)
+        i['time'] = tpb * (1 / msperbeat) * 1000000 * i['time'] * (256 / tpb)
         if i['type'] == 'set_tempo':
             msperbeat = i['tempo']    
     ''' change time values from delta to relative time. '''
@@ -2812,6 +2815,12 @@ def midi_import():
                     i['duration'] = t['time'] - i['time']
                     break
         index += 1
+
+    # round time to piano-tick
+    for i in msgs:
+        if i['type'] == 'note_on' or i['type'] == 'time_signature':
+            i['time'] = round(i['time'],0)
+            i['duration'] = round(i['duration'],0)
     
     # for debugging purposes print every midi message.
     for i in msgs:
@@ -3006,6 +3015,7 @@ def midi_import():
             curs_set = i['time'] + i['duration']
             column += len(ins_string)+1
             dur_set = i['duration']
+    
     line += 2
     insert_text(line,0,'~hand{L}')
     line += 1
@@ -3077,10 +3087,10 @@ def midi_import():
 #-------
 # Menu
 #-------
-menubar = Menu(root, relief='flat', bg=_bg)
+menubar = Menu(root, relief='flat', bg=_bg, fg='white')
 root.config(menu=menubar)
 
-fileMenu = Menu(menubar, tearoff=0)
+fileMenu = Menu(menubar, tearoff=0, bg=_bg, fg='white')
 
 fileMenu.add_command(label='new', command=new_file)
 fileMenu.add_command(label='open', command=open_file)
@@ -3090,7 +3100,7 @@ fileMenu.add_command(label='save as', command=save_as)
 
 fileMenu.add_separator()
 
-submenu = Menu(fileMenu, tearoff=0)
+submenu = Menu(fileMenu, tearoff=0, bg=_bg, fg='white')
 submenu.add_command(label="postscript", command=exportPS)
 submenu.add_command(label="pdf", command=exportPDF)
 fileMenu.add_cascade(label='export', menu=submenu, underline=0)
