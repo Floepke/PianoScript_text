@@ -8,8 +8,8 @@ from tkinter import colorchooser, INSERT, DoubleVar, Label, Image
 import tkinter.ttk as ttk
 import platform, subprocess, os, sys, threading, math, datetime, time, errno
 from mido import MidiFile
-# if platform.system() == 'Linux':
-#     import rtmidi
+if platform.system() == 'Linux':
+    import rtmidi
 if platform.system() == 'Windows':
     import ctypes
     ctypes.windll.shcore.SetProcessDpiAwareness(1)
@@ -101,7 +101,7 @@ if platform.system() == 'Windows':
     canvas.bind("<Button-3>", zoomerM)
 
 # text --> rightpanel
-textw = Text(rightpanel, foreground='yellow', background='black', insertbackground='red', undo=True, maxundo=100, autoseparators=True)
+textw = Text(rightpanel, foreground='#eeeeee', background='black', insertbackground='red', undo=True, maxundo=100, autoseparators=True)
 textw.place(relwidth=1, relheight=1)
 textw.focus_set()
 fsize = 16
@@ -173,9 +173,9 @@ default = '''~shadeofgrey{70} //0=black; 100=white
 
 
 starttemplate = '''// titles:
-~title{...title...}
-~composer{...composer...}
-~copyright{copyrights reserved 2021}
+~title{title}
+~composer{composer}
+~copyright{copyrights reserved %i}
 
 // grid:
 ~grid{32 4/4 4}
@@ -193,7 +193,7 @@ _1
 
 
 ~hand{L}
-_1 c4''' # % datetime.datetime.now().year
+_1 ''' % datetime.datetime.now().year
 
 
 file = textw.get('1.0', END + '-1c')
@@ -1196,12 +1196,13 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
         # read music
         musicstring = prepare_file(file, '~', '}', ' ')
         index = -1
-        bracket = 0
+        anti_bracket = 0
+        dur_bracket = False
         for sym in musicstring:
             index += 1
             # antisymetric rhythm
             if sym == '<':
-                bracket = 1
+                anti_bracket = 1
                 ind2 = index
                 antisymetric = []
                 for i in musicstring[index+1:]: # reading antisemitric figure
@@ -1223,20 +1224,26 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
                         break
                 continue
             if sym == '>':
-                bracket = 0
-            if bracket == 1:
+                anti_bracket = 0
+            if anti_bracket == 1:
                 continue
 
             # dur in ()
             if sym == '(':
+                dur_bracket = True
                 index2 = index
                 for i in musicstring[index:]:
-                    if i == ')':
-                        break
                     index2 += 1
-                l_str = musicstring[index+1:index2]
+                    if i == ')':
+                        break  
+                l_str = musicstring[index+1:index2-1]
+                print(l_str)
                 msgprep.append([index, 'dur', l_str])
-                index = index2
+            if dur_bracket == True:
+                if sym == ')':
+                    dur_bracket = False
+                else:
+                    continue
 
 
             # note
@@ -1734,10 +1741,10 @@ def render(rendertype='normal', papercol=papercolor): # rendertype can be type '
 
 
 
-    for page in msg:
-        for line in page:
-            for i in line:
-                print(i)
+    # for page in msg:
+    #     for line in page:
+    #         for note in line:
+    #             print(note)
 
 
 
@@ -2533,57 +2540,56 @@ def exportPDF():
 # MIDI input
 #-------------
 
-# midi_record_toggle = 0
-# def midi_toggle(q='q'):
-#     global midi_record_toggle
-#     if midi_record_toggle == 1:
-#         midi_record_toggle = 0
-#         canvas.configure(bg=papercolor)
-#         return 0
-#     elif midi_record_toggle == 0:
-#         midi_record_toggle = 1
-#         canvas.configure(bg='brown')
-#         return 1
+midi_record_toggle = 0
+def midi_toggle(q='q'):
+    global midi_record_toggle
+    if midi_record_toggle == 1:
+        midi_record_toggle = 0
+        canvas.configure(bg=papercolor)
+        return 0
+    elif midi_record_toggle == 0:
+        midi_record_toggle = 1
+        canvas.configure(bg='brown')
+        return 1
 
-# def midi_input():
+def midi_input():
 
-#     dev = rtmidi.RtMidiIn()
+    class Collector(threading.Thread):
+        def __init__(self, device, port):
+            threading.Thread.__init__(self)
+            self.setDaemon(True)
+            self.port = port
+            self.portName = device.getPortName(port)
+            self.device = device
+            self.quit = False
 
-#     class Collector(threading.Thread):
-#         def __init__(self, device, port):
-#             threading.Thread.__init__(self)
-#             self.setDaemon(True)
-#             self.port = port
-#             self.portName = device.getPortName(port)
-#             self.device = device
-#             self.quit = False
+        def run(self):
+            self.device.openPort(self.port)
+            self.device.ignoreTypes(True, False, True)
+            while True:
+                if self.quit:
+                    return
+                msg = self.device.getMessage(10000)
+                if msg:
+                    if msg.isNoteOn():
+                        if midi_record_toggle == 1:
+                            note = msg.getNoteNumber() - 20
+                            if shiftkey == 0:
+                                textw.insert(textw.index(INSERT), number2pitch[note])
+                            elif shiftkey == 1:
+                                textw.insert(textw.index(INSERT), '_'+number2pitch[note])
 
-#         def run(self):
-#             self.device.openPort(self.port)
-#             self.device.ignoreTypes(True, False, True)
-#             while True:
-#                 if whileloops == 0:
-#                     print('CLOSING MIDI PORT...')
-#                     return
-#                 msg = self.device.getMessage(2500)
-#                 if msg:
-#                     if msg.isNoteOn():
-#                         if midi_record_toggle == 1:
-#                             note = msg.getNoteNumber() - 20
-#                             if shiftkey == 0:
-#                                 textw.insert(textw.index(INSERT), number2pitch[note])
-#                             elif shiftkey == 1:
-#                                 textw.insert(textw.index(INSERT), '_'+number2pitch[note])
-#                             autorender()
-    
-#     for i in range(dev.getPortCount()):
-#         device = rtmidi.RtMidiIn()
-#         print('OPENING',dev.getPortName(i))
-#         collector = Collector(device, i)
-#         collector.start()
 
-# if platform.system() == 'Linux':
-#     threading.Thread(target=midi_input).start()
+    dev = rtmidi.RtMidiIn()
+    collectors = []
+    for i in range(dev.getPortCount()):
+        device = rtmidi.RtMidiIn()
+        print('OPENING',dev.getPortName(i))
+        collector = Collector(device, i)
+        collector.start()
+        collectors.append(collector)
+
+threading.Thread(target=midi_input).start()
 
 
 
@@ -2876,7 +2882,7 @@ def midi_import():
         elif duration == 56:
             return 'T..'
         else:
-            return '~dur{%d}' % duration
+            return '(%d)' % duration
 
     def which_measure(pianotick):
         '''returns in which measure the pianotick is located'''
@@ -3141,7 +3147,7 @@ def keyrelease(event):
 new_file()
 autosave()
 #midi_import('test.mid')
-# root.bind('<Escape>', midi_toggle)
+root.bind('<Escape>', midi_toggle)
 root.bind('<F11>', fullscreen)
 root.bind('<KeyPress>', keypress)
 root.bind('<KeyRelease>', keyrelease)
